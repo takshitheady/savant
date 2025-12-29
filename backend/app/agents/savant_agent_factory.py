@@ -4,10 +4,12 @@ Savant Agent Factory
 Dynamically creates Agno Agent instances based on Savant configuration.
 Combines account-level prompts, savant-level prompts, and RAG capabilities.
 Supports multiple AI providers (Anthropic, OpenAI, Google, Mistral, DeepSeek, ByteDance).
+Includes conversation memory and user personalization via Agno's built-in storage.
 """
 
 from agno.agent import Agent
 from agno.models.openai import OpenAIChat
+from agno.db.postgres import PostgresDb
 from app.tools.rag_tool import create_rag_function
 from supabase import create_client
 import os
@@ -15,6 +17,13 @@ from typing import Optional
 
 # Multi-provider API configuration
 MODEL_API_BASE_URL = "https://openrouter.ai/api/v1"
+
+# Memory configuration
+MEMORY_CONFIG = {
+    "add_history_to_context": True,     # Pass conversation history to LLM
+    "num_history_runs": 10,             # Last 10 message exchanges
+    "enable_user_memories": True,       # Remember user facts across sessions
+}
 
 
 class SavantAgentFactory:
@@ -24,16 +33,39 @@ class SavantAgentFactory:
             os.getenv("SUPABASE_SERVICE_ROLE_KEY")
         )
 
-    async def create_agent(self, savant_id: str, account_id: str) -> Agent:
+        # Initialize Agno session storage for conversation memory
+        db_url = os.getenv("SUPABASE_DB_URL")
+        if db_url:
+            # Convert standard PostgreSQL URL to Agno-compatible format
+            # Agno requires postgresql+psycopg:// instead of postgresql://
+            if db_url.startswith("postgresql://"):
+                db_url = db_url.replace("postgresql://", "postgresql+psycopg://", 1)
+
+            self.agent_db = PostgresDb(
+                db_url=db_url,
+                session_table="agent_sessions"
+            )
+        else:
+            self.agent_db = None
+
+    async def create_agent(
+        self,
+        savant_id: str,
+        account_id: str,
+        session_id: Optional[str] = None,
+        user_id: Optional[str] = None
+    ) -> Agent:
         """
-        Create a dynamic agent instance for a specific savant
+        Create a dynamic agent instance for a specific savant with conversation memory
 
         Args:
             savant_id: UUID of the Savant
             account_id: UUID of the Account (for permission checking)
+            session_id: Conversation/session ID for memory continuity
+            user_id: User ID for personalized memories across sessions
 
         Returns:
-            Configured Agno Agent instance
+            Configured Agno Agent instance with memory capabilities
         """
         # Fetch savant configuration
         savant_result = self.supabase.table('savants')\
@@ -85,8 +117,7 @@ class SavantAgentFactory:
         # Get API key for model routing
         api_key = os.getenv("OPENROUTER_API_KEY")
 
-        # Create agent with multi-provider configuration
-        # Uses OpenAI-compatible API interface
+        # Create agent with multi-provider configuration and memory
         agent = Agent(
             id=f"savant-{savant_id}",
             name=savant_data.get('name', 'Savant'),
@@ -99,6 +130,13 @@ class SavantAgentFactory:
             instructions=combined_instructions,
             tools=[rag_function],
             markdown=True,
+            # Memory configuration for conversation continuity
+            db=self.agent_db,
+            session_id=session_id,
+            user_id=user_id,
+            add_history_to_context=MEMORY_CONFIG["add_history_to_context"],
+            num_history_runs=MEMORY_CONFIG["num_history_runs"],
+            enable_user_memories=MEMORY_CONFIG["enable_user_memories"],
         )
 
         return agent

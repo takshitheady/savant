@@ -3,11 +3,13 @@ Chat API Routes
 
 Provides streaming chat endpoint for Savant conversations.
 Uses Server-Sent Events (SSE) for real-time streaming.
+Supports conversation memory and user personalization via Agno.
 """
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from typing import Optional
 from app.agents.savant_agent_factory import SavantAgentFactory
 from supabase import create_client
 import os
@@ -26,6 +28,8 @@ class ChatRequest(BaseModel):
     savant_id: str
     message: str
     account_id: str
+    conversation_id: Optional[str] = None  # For conversation continuity
+    user_id: Optional[str] = None          # For user memories across sessions
 
 
 @router.post("/chat")
@@ -58,22 +62,41 @@ async def chat(request: ChatRequest):
 
     savant_name = savant_check.data['name']
 
-    # Get or create conversation for this savant
-    # For now, we'll create a new conversation for each chat session
-    # In the future, you could maintain conversation continuity
+    # Get or create conversation for memory continuity
+    conversation_id = None
     try:
-        conversation_result = supabase.table('conversations').insert({
-            'savant_id': request.savant_id,
-            'account_id': request.account_id,
-            'title': f"Chat with {savant_name}",
-            'metadata': {}
-        }).execute()
+        if request.conversation_id:
+            # Verify and reuse existing conversation
+            conv_check = supabase.table('conversations')\
+                .select('id')\
+                .eq('id', request.conversation_id)\
+                .eq('savant_id', request.savant_id)\
+                .eq('account_id', request.account_id)\
+                .single()\
+                .execute()
 
-        conversation_id = conversation_result.data[0]['id']
+            if conv_check.data:
+                conversation_id = request.conversation_id
+                logger.info(f"Reusing existing conversation: {conversation_id}")
+            else:
+                logger.warning(f"Conversation {request.conversation_id} not found, creating new")
+
+        # Create new conversation if none provided or not found
+        if not conversation_id:
+            conversation_result = supabase.table('conversations').insert({
+                'savant_id': request.savant_id,
+                'account_id': request.account_id,
+                'user_id': request.user_id,
+                'title': f"Chat with {savant_name}",
+                'metadata': {}
+            }).execute()
+            conversation_id = conversation_result.data[0]['id']
+            logger.info(f"Created new conversation: {conversation_id}")
+
     except Exception as e:
-        logger.error(f"Failed to create conversation: {str(e)}")
+        logger.error(f"Failed to get/create conversation: {str(e)}")
         logger.error(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=f"Failed to create conversation: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get/create conversation: {str(e)}")
 
     # Save user message to database
     try:
@@ -89,10 +112,15 @@ async def chat(request: ChatRequest):
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Failed to save message: {str(e)}")
 
-    # Create agent factory and get agent for this savant
+    # Create agent factory and get agent with memory context
     try:
         factory = SavantAgentFactory()
-        agent = await factory.create_agent(request.savant_id, request.account_id)
+        agent = await factory.create_agent(
+            savant_id=request.savant_id,
+            account_id=request.account_id,
+            session_id=conversation_id,  # Links conversation for memory
+            user_id=request.user_id       # For user personalization
+        )
     except Exception as e:
         logger.error(f"Failed to create agent: {str(e)}")
         logger.error(traceback.format_exc())
@@ -104,8 +132,8 @@ async def chat(request: ChatRequest):
         error_occurred = False
 
         try:
-            # Send initial event
-            yield f"data: {json.dumps({'type': 'start', 'savant': savant_name})}\n\n"
+            # Send initial event with conversation_id for frontend tracking
+            yield f"data: {json.dumps({'type': 'start', 'savant': savant_name, 'conversation_id': conversation_id})}\n\n"
 
             # Run agent with streaming
             async for chunk in agent.arun(request.message, stream=True):

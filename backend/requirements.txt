@@ -76,3 +76,7 @@ langchain-community>=0.3.18
 pypdf==5.3.0
 python-docx==1.1.2
 tiktoken==0.8.0
+
+# Agno Memory Storage (PostgreSQL)
+psycopg2-binary>=2.9.0
+sqlalchemy>=2.0.0

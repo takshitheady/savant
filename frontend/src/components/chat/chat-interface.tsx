@@ -22,6 +22,8 @@ interface ChatInterfaceProps {
   savantName: string
   initialMessages: Message[]
   accountId: string
+  userId?: string                    // For user memories across sessions
+  initialConversationId?: string     // For conversation continuity
 }
 
 export function ChatInterface({
@@ -29,11 +31,14 @@ export function ChatInterface({
   savantName,
   initialMessages,
   accountId,
+  userId,
+  initialConversationId,
 }: ChatInterfaceProps) {
   const router = useRouter()
   const [messages, setMessages] = useState<Message[]>(initialMessages)
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [conversationId, setConversationId] = useState<string | null>(initialConversationId || null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -83,6 +88,8 @@ export function ChatInterface({
           savant_id: savantId,
           message: userMessage,
           account_id: accountId,
+          conversation_id: conversationId,  // For memory continuity
+          user_id: userId,                   // For user personalization
         }),
       })
 
@@ -108,6 +115,11 @@ export function ChatInterface({
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.slice(6))
+
+              // Capture conversation_id from start event for memory continuity
+              if (data.type === 'start' && data.conversation_id) {
+                setConversationId(data.conversation_id)
+              }
 
               if (data.type === 'content' && data.content) {
                 setMessages((prev) =>

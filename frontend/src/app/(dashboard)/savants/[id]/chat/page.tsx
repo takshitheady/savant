@@ -88,6 +88,7 @@ export default async function ChatPage({ params }: ChatPageProps) {
           savantName={savant.name}
           initialMessages={messages || []}
           accountId={accountMember.account_id}
+          userId={user.id}
         />
       </div>
     </div>
