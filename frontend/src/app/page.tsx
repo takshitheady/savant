@@ -1,17 +1,16 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Bot, Database, Zap, Lock, FileText, MessageSquare } from 'lucide-react'
+import { Database, Zap, Lock, FileText, MessageSquare, Bot } from 'lucide-react'
 
 export default function LandingPage() {
   return (
     <div className="flex min-h-screen flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 font-semibold">
-            <Bot className="h-6 w-6" />
-            <span className="text-xl">Savant</span>
+      <header className="sticky top-0 z-50 w-full bg-background">
+        <div className="container px-4 flex h-16 items-center justify-between">
+          <Link href="/" className="text-xl font-bold text-primary">
+            Savant
           </Link>
           <div className="flex items-center gap-4">
             <Link href="/login">
@@ -25,7 +24,7 @@ export default function LandingPage() {
       </header>
 
       {/* Hero Section */}
-      <section className="container flex flex-col items-center gap-6 py-24 text-center md:py-32">
+      <section className="container px-4 flex flex-col items-center gap-6 py-24 text-center md:py-32">
         <div className="flex max-w-[64rem] flex-col items-center gap-4">
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
             Build AI Assistants
@@ -52,7 +51,7 @@ export default function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section className="container py-16">
+      <section className="container px-4 py-16">
         <div className="mx-auto max-w-[64rem]">
           <div className="mb-12 text-center">
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
@@ -128,7 +127,7 @@ export default function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="container py-16">
+      <section className="container px-4 py-16">
         <Card className="mx-auto max-w-[64rem] border-primary/50 bg-primary/5">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl">Ready to build your first Savant?</CardTitle>
@@ -145,12 +144,9 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="mt-auto border-t py-6">
-        <div className="container flex flex-col items-center justify-between gap-4 md:flex-row">
-          <div className="flex items-center gap-2">
-            <Bot className="h-5 w-5" />
-            <span className="font-semibold">Savant</span>
-          </div>
+      <footer className="mt-auto py-6">
+        <div className="container px-4 flex flex-col items-center justify-between gap-4 md:flex-row">
+          <span className="font-bold text-primary">Savant</span>
           <p className="text-sm text-muted-foreground">
             Powered by Agno AgentOS. Built for developers.
           </p>

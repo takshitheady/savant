@@ -3,6 +3,7 @@ Savant Agent Factory
 
 Dynamically creates Agno Agent instances based on Savant configuration.
 Combines account-level prompts, savant-level prompts, and RAG capabilities.
+Uses OpenRouter for multi-model support (OpenAI, Anthropic, Google, etc.)
 """
 
 from agno.agent import Agent
@@ -11,6 +12,9 @@ from app.tools.rag_tool import create_rag_function
 from supabase import create_client
 import os
 from typing import Optional
+
+# OpenRouter configuration
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
 
 class SavantAgentFactory:
@@ -74,16 +78,23 @@ class SavantAgentFactory:
 
         # Extract model config from JSONB
         model_config = savant_data.get('model_config', {})
-        model_name = model_config.get('model', 'gpt-4o-mini')
+        # Default to OpenRouter format model ID
+        model_name = model_config.get('model', 'openai/gpt-4o-mini')
         temperature = model_config.get('temperature', 0.7)
 
-        # Create agent with configuration
+        # Get OpenRouter API key
+        openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
+
+        # Create agent with OpenRouter configuration
+        # OpenRouter uses OpenAI-compatible API, so we can use OpenAIChat
         agent = Agent(
             id=f"savant-{savant_id}",
             name=savant_data.get('name', 'Savant'),
             model=OpenAIChat(
                 id=model_name,
-                temperature=temperature
+                api_key=openrouter_api_key,
+                base_url=OPENROUTER_BASE_URL,
+                temperature=temperature,
             ),
             instructions=combined_instructions,
             tools=[rag_function],

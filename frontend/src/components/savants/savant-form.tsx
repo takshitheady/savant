@@ -27,6 +27,22 @@ import {
 import { Slider } from '@/components/ui/slider'
 import { createClient } from '@/lib/supabase/client'
 import { Loader2 } from 'lucide-react'
+import { SelectGroup, SelectLabel } from '@/components/ui/select'
+
+// Available models via OpenRouter
+const AVAILABLE_MODELS = [
+  // OpenAI
+  { value: 'openai/gpt-4o', label: 'GPT-4o', provider: 'OpenAI', description: 'Most capable' },
+  { value: 'openai/gpt-4o-mini', label: 'GPT-4o Mini', provider: 'OpenAI', description: 'Fast & efficient' },
+  { value: 'openai/o1', label: 'o1', provider: 'OpenAI', description: 'Advanced reasoning' },
+  { value: 'openai/o3-mini', label: 'o3 Mini', provider: 'OpenAI', description: 'Efficient reasoning' },
+  // Anthropic
+  { value: 'anthropic/claude-sonnet-4-20250514', label: 'Claude Sonnet 4', provider: 'Anthropic', description: 'Balanced & capable' },
+  { value: 'anthropic/claude-opus-4-20250514', label: 'Claude Opus 4', provider: 'Anthropic', description: 'Most intelligent' },
+  // Google
+  { value: 'google/gemini-2.0-flash-001', label: 'Gemini 2.0 Flash', provider: 'Google', description: 'Fast & multimodal' },
+  { value: 'google/gemini-pro-1.5', label: 'Gemini 1.5 Pro', provider: 'Google', description: 'Powerful & versatile' },
+] as const
 
 const savantSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(100),
@@ -41,7 +57,7 @@ type SavantFormValues = z.infer<typeof savantSchema>
 const defaultValues: SavantFormValues = {
   name: '',
   description: '',
-  model: 'gpt-4o-mini',
+  model: 'openai/gpt-4o-mini',
   temperature: 0.7,
   systemPrompt: '',
 }
@@ -144,7 +160,7 @@ export function SavantForm() {
           system_prompt: values.systemPrompt || null,
           model_config: {
             model: values.model,
-            provider: 'openai',
+            provider: 'openrouter',
             temperature: values.temperature,
             max_tokens: 4096,
           },
@@ -221,14 +237,34 @@ export function SavantForm() {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="gpt-4o-mini">GPT-4o Mini (Fast & Efficient)</SelectItem>
-                  <SelectItem value="gpt-4o">GPT-4o (Most Capable)</SelectItem>
-                  <SelectItem value="gpt-4-turbo">GPT-4 Turbo</SelectItem>
-                  <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
+                  <SelectGroup>
+                    <SelectLabel>OpenAI</SelectLabel>
+                    {AVAILABLE_MODELS.filter(m => m.provider === 'OpenAI').map(model => (
+                      <SelectItem key={model.value} value={model.value}>
+                        {model.label} - {model.description}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                  <SelectGroup>
+                    <SelectLabel>Anthropic</SelectLabel>
+                    {AVAILABLE_MODELS.filter(m => m.provider === 'Anthropic').map(model => (
+                      <SelectItem key={model.value} value={model.value}>
+                        {model.label} - {model.description}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                  <SelectGroup>
+                    <SelectLabel>Google</SelectLabel>
+                    {AVAILABLE_MODELS.filter(m => m.provider === 'Google').map(model => (
+                      <SelectItem key={model.value} value={model.value}>
+                        {model.label} - {model.description}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
                 </SelectContent>
               </Select>
               <FormDescription>
-                Choose the AI model that powers your Savant
+                Choose the AI model that powers your Savant (via OpenRouter)
               </FormDescription>
               <FormMessage />
             </FormItem>
