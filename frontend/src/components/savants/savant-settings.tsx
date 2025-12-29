@@ -1,0 +1,260 @@
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm } from 'react-hook-form'
+import * as z from 'zod'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Slider } from '@/components/ui/slider'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import { createClient } from '@/lib/supabase/client'
+import { Loader2, Trash2 } from 'lucide-react'
+
+const savantSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters').max(100),
+  description: z.string().max(500).optional(),
+  model: z.string(),
+  temperature: z.number().min(0).max(2),
+})
+
+type SavantFormValues = z.infer<typeof savantSchema>
+
+interface SavantSettingsProps {
+  savant: {
+    id: string
+    name: string
+    description?: string | null
+    model: string
+    temperature: number
+  }
+}
+
+export function SavantSettings({ savant }: SavantSettingsProps) {
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const form = useForm<SavantFormValues>({
+    resolver: zodResolver(savantSchema),
+    defaultValues: {
+      name: savant.name,
+      description: savant.description || '',
+      model: savant.model,
+      temperature: savant.temperature,
+    },
+  })
+
+  async function onSubmit(values: SavantFormValues) {
+    try {
+      setIsLoading(true)
+
+      const supabase = createClient()
+
+      const { error } = await supabase
+        .from('savants')
+        .update({
+          name: values.name,
+          description: values.description,
+          model: values.model,
+          temperature: values.temperature,
+        })
+        .eq('id', savant.id)
+
+      if (error) {
+        throw error
+      }
+
+      router.refresh()
+      alert('Settings updated successfully!')
+    } catch (error) {
+      console.error('Error updating savant:', error)
+      alert('Failed to update settings. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  async function handleDelete() {
+    try {
+      setIsDeleting(true)
+
+      const supabase = createClient()
+
+      const { error } = await supabase.from('savants').delete().eq('id', savant.id)
+
+      if (error) {
+        throw error
+      }
+
+      router.push('/savants')
+      router.refresh()
+    } catch (error) {
+      console.error('Error deleting savant:', error)
+      alert('Failed to delete savant. Please try again.')
+      setIsDeleting(false)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>General Settings</CardTitle>
+          <CardDescription>Update your Savant's configuration</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea className="resize-none" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="model"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Model</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
+                        <SelectItem value="gpt-4o">GPT-4o</SelectItem>
+                        <SelectItem value="gpt-4-turbo">GPT-4 Turbo</SelectItem>
+                        <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="temperature"
+                render={({ field: { value, onChange } }) => (
+                  <FormItem>
+                    <FormLabel>Temperature: {value}</FormLabel>
+                    <FormControl>
+                      <Slider
+                        min={0}
+                        max={2}
+                        step={0.1}
+                        value={[value]}
+                        onValueChange={(vals) => onChange(vals[0])}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Lower values make output more focused. Higher values make it more creative.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <Button type="submit" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Changes
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+
+      <Card className="border-destructive">
+        <CardHeader>
+          <CardTitle className="text-destructive">Danger Zone</CardTitle>
+          <CardDescription>Permanently delete this Savant and all its data</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" disabled={isDeleting}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete Savant
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete the Savant "
+                  {savant.name}" and remove all associated documents, prompts, and conversation
+                  history.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDelete}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
