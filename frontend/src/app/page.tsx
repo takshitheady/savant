@@ -26,7 +26,7 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="container mx-auto px-4 flex flex-col items-center gap-6 py-24 text-center md:py-32">
         <div className="flex max-w-[64rem] flex-col items-center gap-4">
-          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
+          <h1 className="text-5xl font-bold tracking-tight sm:text-6xl md:text-7xl lg:text-8xl">
             Build AI Assistants
             <br />
             <span className="text-primary">Trained on Your Data</span>
@@ -58,7 +58,7 @@ export default function LandingPage() {
               Everything you need to build AI agents
             </h2>
             <p className="mt-4 text-lg text-muted-foreground">
-              Powered by Agno AgentOS for production-grade AI applications
+              Production-grade AI applications built for scale
             </p>
           </div>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -117,8 +117,7 @@ export default function LandingPage() {
                 <Zap className="h-10 w-10 text-primary" />
                 <CardTitle>Production Ready</CardTitle>
                 <CardDescription>
-                  Built on Agno AgentOS with tracing, monitoring, and scalable architecture from
-                  day one
+                  Built with tracing, monitoring, and scalable architecture from day one
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -148,7 +147,7 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 flex flex-col items-center justify-between gap-4 md:flex-row">
           <span className="font-bold text-primary">Savant</span>
           <p className="text-sm text-muted-foreground">
-            Powered by Agno AgentOS. Built for developers.
+            Built for developers.
           </p>
         </div>
       </footer>

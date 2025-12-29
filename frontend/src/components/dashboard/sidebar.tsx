@@ -116,7 +116,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           <div className="rounded-xl bg-muted/50 px-3 py-2.5">
             <p className="text-xs font-medium text-foreground">Savant AI</p>
             <p className="text-xs text-muted-foreground">
-              Powered by Agno
+              Built for developers
             </p>
           </div>
         </div>
