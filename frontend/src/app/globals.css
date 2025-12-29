@@ -15,13 +15,17 @@
   --card: #ffffff;
   --card-foreground: #1A1817;
 
+  /* Popover: Clean white for dropdowns */
+  --popover: #ffffff;
+  --popover-foreground: #1A1817;
+
   /* Muted: Very subtle warm grays */
   --muted: #F5F5F4;
   --muted-foreground: #78716C;
 
-  /* Accent: Soft amber */
-  --accent: #FEF3C7;
-  --accent-foreground: #92400E;
+  /* Accent: Neutral gray for dropdowns/selections */
+  --accent: #F5F5F4;
+  --accent-foreground: #1A1817;
 
   /* Secondary: Very light warm gray */
   --secondary: #F5F5F4;
@@ -64,6 +68,8 @@
   --color-primary-foreground: var(--primary-foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);

@@ -8,7 +8,7 @@ export default function LandingPage() {
     <div className="flex min-h-screen flex-col">
       {/* Header */}
       <header className="sticky top-0 z-50 w-full bg-background">
-        <div className="container px-4 flex h-16 items-center justify-between">
+        <div className="container mx-auto px-4 flex h-16 items-center justify-between">
           <Link href="/" className="text-xl font-bold text-primary">
             Savant
           </Link>
@@ -24,7 +24,7 @@ export default function LandingPage() {
       </header>
 
       {/* Hero Section */}
-      <section className="container px-4 flex flex-col items-center gap-6 py-24 text-center md:py-32">
+      <section className="container mx-auto px-4 flex flex-col items-center gap-6 py-24 text-center md:py-32">
         <div className="flex max-w-[64rem] flex-col items-center gap-4">
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
             Build AI Assistants
@@ -51,7 +51,7 @@ export default function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section className="container px-4 py-16">
+      <section className="container mx-auto px-4 py-16">
         <div className="mx-auto max-w-[64rem]">
           <div className="mb-12 text-center">
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
@@ -127,7 +127,7 @@ export default function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="container px-4 py-16">
+      <section className="container mx-auto px-4 py-16">
         <Card className="mx-auto max-w-[64rem] border-primary/50 bg-primary/5">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl">Ready to build your first Savant?</CardTitle>
@@ -145,7 +145,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="mt-auto py-6">
-        <div className="container px-4 flex flex-col items-center justify-between gap-4 md:flex-row">
+        <div className="container mx-auto px-4 flex flex-col items-center justify-between gap-4 md:flex-row">
           <span className="font-bold text-primary">Savant</span>
           <p className="text-sm text-muted-foreground">
             Powered by Agno AgentOS. Built for developers.

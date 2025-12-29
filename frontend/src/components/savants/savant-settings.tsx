@@ -39,6 +39,28 @@ import {
 } from '@/components/ui/alert-dialog'
 import { createClient } from '@/lib/supabase/client'
 import { Loader2, Trash2 } from 'lucide-react'
+import { SelectGroup, SelectLabel } from '@/components/ui/select'
+
+// Available AI models
+const AVAILABLE_MODELS = [
+  // Anthropic
+  { value: 'anthropic/claude-sonnet-4.5', label: 'Claude Sonnet 4.5', provider: 'Anthropic', description: 'Balanced & fast' },
+  { value: 'anthropic/claude-opus-4.5', label: 'Claude Opus 4.5', provider: 'Anthropic', description: 'Most intelligent' },
+  // OpenAI
+  { value: 'openai/gpt-5.1', label: 'GPT-5.1', provider: 'OpenAI', description: 'Latest GPT' },
+  { value: 'openai/gpt-5.2-pro', label: 'GPT-5.2 Pro', provider: 'OpenAI', description: 'Professional' },
+  { value: 'openai/gpt-5.2-chat', label: 'GPT-5.2 Chat', provider: 'OpenAI', description: 'Conversational' },
+  // Google
+  { value: 'google/gemini-3-pro-preview', label: 'Gemini 3 Pro', provider: 'Google', description: 'Powerful' },
+  { value: 'google/gemini-3-flash-preview', label: 'Gemini 3 Flash', provider: 'Google', description: 'Fast' },
+  { value: 'google/gemini-3-pro-image-preview', label: 'Gemini 3 Pro Image', provider: 'Google', description: 'Image generation' },
+  // Mistral
+  { value: 'mistralai/ministral-14b-2512', label: 'Ministral 14B', provider: 'Mistral', description: 'Efficient' },
+  // DeepSeek
+  { value: 'deepseek/deepseek-v3.2', label: 'DeepSeek V3.2', provider: 'DeepSeek', description: 'Open source' },
+  // ByteDance
+  { value: 'bytedance-seed/seedream-4.5', label: 'Seedream 4.5', provider: 'ByteDance', description: 'Image generation' },
+] as const
 
 const savantSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(100),
@@ -54,8 +76,12 @@ interface SavantSettingsProps {
     id: string
     name: string
     description?: string | null
-    model: string
-    temperature: number
+    model_config?: {
+      model?: string
+      temperature?: number
+      provider?: string
+      max_tokens?: number
+    } | null
   }
 }
 
@@ -69,8 +95,8 @@ export function SavantSettings({ savant }: SavantSettingsProps) {
     defaultValues: {
       name: savant.name,
       description: savant.description || '',
-      model: savant.model,
-      temperature: savant.temperature,
+      model: savant.model_config?.model || 'anthropic/claude-sonnet-4.5',
+      temperature: savant.model_config?.temperature ?? 0.7,
     },
   })
 
@@ -85,8 +111,12 @@ export function SavantSettings({ savant }: SavantSettingsProps) {
         .update({
           name: values.name,
           description: values.description,
-          model: values.model,
-          temperature: values.temperature,
+          model_config: {
+            model: values.model,
+            provider: 'multi',
+            temperature: values.temperature,
+            max_tokens: 4096,
+          },
         })
         .eq('id', savant.id)
 
@@ -175,11 +205,55 @@ export function SavantSettings({ savant }: SavantSettingsProps) {
                           <SelectValue />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
-                        <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-                        <SelectItem value="gpt-4-turbo">GPT-4 Turbo</SelectItem>
-                        <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
+                      <SelectContent className="bg-white border-gray-200">
+                        <SelectGroup>
+                          <SelectLabel>Anthropic</SelectLabel>
+                          {AVAILABLE_MODELS.filter(m => m.provider === 'Anthropic').map(model => (
+                            <SelectItem key={model.value} value={model.value}>
+                              {model.label} - {model.description}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                        <SelectGroup>
+                          <SelectLabel>OpenAI</SelectLabel>
+                          {AVAILABLE_MODELS.filter(m => m.provider === 'OpenAI').map(model => (
+                            <SelectItem key={model.value} value={model.value}>
+                              {model.label} - {model.description}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                        <SelectGroup>
+                          <SelectLabel>Google</SelectLabel>
+                          {AVAILABLE_MODELS.filter(m => m.provider === 'Google').map(model => (
+                            <SelectItem key={model.value} value={model.value}>
+                              {model.label} - {model.description}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                        <SelectGroup>
+                          <SelectLabel>Mistral</SelectLabel>
+                          {AVAILABLE_MODELS.filter(m => m.provider === 'Mistral').map(model => (
+                            <SelectItem key={model.value} value={model.value}>
+                              {model.label} - {model.description}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                        <SelectGroup>
+                          <SelectLabel>DeepSeek</SelectLabel>
+                          {AVAILABLE_MODELS.filter(m => m.provider === 'DeepSeek').map(model => (
+                            <SelectItem key={model.value} value={model.value}>
+                              {model.label} - {model.description}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                        <SelectGroup>
+                          <SelectLabel>ByteDance</SelectLabel>
+                          {AVAILABLE_MODELS.filter(m => m.provider === 'ByteDance').map(model => (
+                            <SelectItem key={model.value} value={model.value}>
+                              {model.label} - {model.description}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
                       </SelectContent>
                     </Select>
                     <FormMessage />

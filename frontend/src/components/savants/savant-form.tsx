@@ -29,19 +29,25 @@ import { createClient } from '@/lib/supabase/client'
 import { Loader2 } from 'lucide-react'
 import { SelectGroup, SelectLabel } from '@/components/ui/select'
 
-// Available models via OpenRouter
+// Available AI models
 const AVAILABLE_MODELS = [
-  // OpenAI
-  { value: 'openai/gpt-4o', label: 'GPT-4o', provider: 'OpenAI', description: 'Most capable' },
-  { value: 'openai/gpt-4o-mini', label: 'GPT-4o Mini', provider: 'OpenAI', description: 'Fast & efficient' },
-  { value: 'openai/o1', label: 'o1', provider: 'OpenAI', description: 'Advanced reasoning' },
-  { value: 'openai/o3-mini', label: 'o3 Mini', provider: 'OpenAI', description: 'Efficient reasoning' },
   // Anthropic
-  { value: 'anthropic/claude-sonnet-4-20250514', label: 'Claude Sonnet 4', provider: 'Anthropic', description: 'Balanced & capable' },
-  { value: 'anthropic/claude-opus-4-20250514', label: 'Claude Opus 4', provider: 'Anthropic', description: 'Most intelligent' },
+  { value: 'anthropic/claude-sonnet-4.5', label: 'Claude Sonnet 4.5', provider: 'Anthropic', description: 'Balanced & fast', type: 'chat' },
+  { value: 'anthropic/claude-opus-4.5', label: 'Claude Opus 4.5', provider: 'Anthropic', description: 'Most intelligent', type: 'chat' },
+  // OpenAI
+  { value: 'openai/gpt-5.1', label: 'GPT-5.1', provider: 'OpenAI', description: 'Latest GPT', type: 'chat' },
+  { value: 'openai/gpt-5.2-pro', label: 'GPT-5.2 Pro', provider: 'OpenAI', description: 'Professional', type: 'chat' },
+  { value: 'openai/gpt-5.2-chat', label: 'GPT-5.2 Chat', provider: 'OpenAI', description: 'Conversational', type: 'chat' },
   // Google
-  { value: 'google/gemini-2.0-flash-001', label: 'Gemini 2.0 Flash', provider: 'Google', description: 'Fast & multimodal' },
-  { value: 'google/gemini-pro-1.5', label: 'Gemini 1.5 Pro', provider: 'Google', description: 'Powerful & versatile' },
+  { value: 'google/gemini-3-pro-preview', label: 'Gemini 3 Pro', provider: 'Google', description: 'Powerful', type: 'chat' },
+  { value: 'google/gemini-3-flash-preview', label: 'Gemini 3 Flash', provider: 'Google', description: 'Fast', type: 'chat' },
+  { value: 'google/gemini-3-pro-image-preview', label: 'Gemini 3 Pro Image', provider: 'Google', description: 'Image generation', type: 'image' },
+  // Mistral
+  { value: 'mistralai/ministral-14b-2512', label: 'Ministral 14B', provider: 'Mistral', description: 'Efficient', type: 'chat' },
+  // DeepSeek
+  { value: 'deepseek/deepseek-v3.2', label: 'DeepSeek V3.2', provider: 'DeepSeek', description: 'Open source', type: 'chat' },
+  // ByteDance
+  { value: 'bytedance-seed/seedream-4.5', label: 'Seedream 4.5', provider: 'ByteDance', description: 'Image generation', type: 'image' },
 ] as const
 
 const savantSchema = z.object({
@@ -57,7 +63,7 @@ type SavantFormValues = z.infer<typeof savantSchema>
 const defaultValues: SavantFormValues = {
   name: '',
   description: '',
-  model: 'openai/gpt-4o-mini',
+  model: 'anthropic/claude-sonnet-4.5',
   temperature: 0.7,
   systemPrompt: '',
 }
@@ -160,7 +166,7 @@ export function SavantForm() {
           system_prompt: values.systemPrompt || null,
           model_config: {
             model: values.model,
-            provider: 'openrouter',
+            provider: 'multi',
             temperature: values.temperature,
             max_tokens: 4096,
           },
@@ -238,16 +244,16 @@ export function SavantForm() {
                 </FormControl>
                 <SelectContent>
                   <SelectGroup>
-                    <SelectLabel>OpenAI</SelectLabel>
-                    {AVAILABLE_MODELS.filter(m => m.provider === 'OpenAI').map(model => (
+                    <SelectLabel>Anthropic</SelectLabel>
+                    {AVAILABLE_MODELS.filter(m => m.provider === 'Anthropic').map(model => (
                       <SelectItem key={model.value} value={model.value}>
                         {model.label} - {model.description}
                       </SelectItem>
                     ))}
                   </SelectGroup>
                   <SelectGroup>
-                    <SelectLabel>Anthropic</SelectLabel>
-                    {AVAILABLE_MODELS.filter(m => m.provider === 'Anthropic').map(model => (
+                    <SelectLabel>OpenAI</SelectLabel>
+                    {AVAILABLE_MODELS.filter(m => m.provider === 'OpenAI').map(model => (
                       <SelectItem key={model.value} value={model.value}>
                         {model.label} - {model.description}
                       </SelectItem>
@@ -261,10 +267,34 @@ export function SavantForm() {
                       </SelectItem>
                     ))}
                   </SelectGroup>
+                  <SelectGroup>
+                    <SelectLabel>Mistral</SelectLabel>
+                    {AVAILABLE_MODELS.filter(m => m.provider === 'Mistral').map(model => (
+                      <SelectItem key={model.value} value={model.value}>
+                        {model.label} - {model.description}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                  <SelectGroup>
+                    <SelectLabel>DeepSeek</SelectLabel>
+                    {AVAILABLE_MODELS.filter(m => m.provider === 'DeepSeek').map(model => (
+                      <SelectItem key={model.value} value={model.value}>
+                        {model.label} - {model.description}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                  <SelectGroup>
+                    <SelectLabel>ByteDance</SelectLabel>
+                    {AVAILABLE_MODELS.filter(m => m.provider === 'ByteDance').map(model => (
+                      <SelectItem key={model.value} value={model.value}>
+                        {model.label} - {model.description}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
                 </SelectContent>
               </Select>
               <FormDescription>
-                Choose the AI model that powers your Savant (via OpenRouter)
+                Choose the AI model that powers your Savant
               </FormDescription>
               <FormMessage />
             </FormItem>
