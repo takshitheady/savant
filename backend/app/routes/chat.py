@@ -17,6 +17,7 @@ import json
 import asyncio
 import logging
 import traceback
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -130,13 +131,21 @@ async def chat(request: ChatRequest):
     async def generate():
         full_response = ""
         error_occurred = False
+        start_time = time.time()
+        first_chunk_received = False
 
         try:
+            logger.info(f"[TIMING] generate() started for savant {request.savant_id}")
+
             # Send initial event with conversation_id for frontend tracking
             yield f"data: {json.dumps({'type': 'start', 'savant': savant_name, 'conversation_id': conversation_id})}\n\n"
 
             # Run agent with streaming
             async for chunk in agent.arun(request.message, stream=True):
+                if not first_chunk_received:
+                    logger.info(f"[TIMING] First chunk received at {time.time() - start_time:.2f}s")
+                    first_chunk_received = True
+
                 if chunk.content:
                     full_response += chunk.content
 
@@ -161,6 +170,7 @@ async def chat(request: ChatRequest):
                     logger.error(traceback.format_exc())
 
             # Send completion event
+            logger.info(f"[TIMING] Streaming complete at {time.time() - start_time:.2f}s, response length: {len(full_response)}")
             yield f"data: {json.dumps({'type': 'done', 'full_response': full_response})}\n\n"
 
         except Exception as e:

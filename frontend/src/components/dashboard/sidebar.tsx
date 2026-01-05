@@ -12,6 +12,8 @@ import {
   Sparkles,
   ChevronLeft,
   ChevronRight,
+  Store,
+  BarChart3,
 } from 'lucide-react'
 
 const navigation = [
@@ -24,6 +26,16 @@ const navigation = [
     name: 'Savants',
     href: '/savants',
     icon: Bot,
+  },
+  {
+    name: 'Store',
+    href: '/store',
+    icon: Store,
+  },
+  {
+    name: 'Creator',
+    href: '/creator-dashboard',
+    icon: BarChart3,
   },
   {
     name: 'Prompts',

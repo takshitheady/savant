@@ -126,6 +126,7 @@ class SavantAgentFactory:
                 api_key=api_key,
                 base_url=MODEL_API_BASE_URL,
                 temperature=temperature,
+                max_tokens=model_config.get('max_tokens', 4096),
             ),
             instructions=combined_instructions,
             tools=[rag_function],

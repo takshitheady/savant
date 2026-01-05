@@ -4,11 +4,13 @@ import { notFound, redirect } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
-import { Bot, Settings, FileText, MessageSquare, Sparkles } from 'lucide-react'
+import { Bot, Settings, FileText, MessageSquare, Sparkles, Store } from 'lucide-react'
 import Link from 'next/link'
 import { SavantSettings } from '@/components/savants/savant-settings'
 import { SavantPrompts } from '@/components/savants/savant-prompts'
 import { SavantDocuments } from '@/components/savants/savant-documents'
+import { SavantPublish } from '@/components/savants/savant-publish'
+import { ImportedBadge } from '@/components/store/imported-badge'
 
 interface SavantPageProps {
   params: Promise<{
@@ -83,7 +85,7 @@ export default async function SavantPage({ params }: SavantPageProps) {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between">
-        <div className="space-y-1">
+        <div className="space-y-2">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
               <Bot className="h-6 w-6 text-primary" />
@@ -93,6 +95,9 @@ export default async function SavantPage({ params }: SavantPageProps) {
               <p className="text-muted-foreground">{savant.description || 'No description'}</p>
             </div>
           </div>
+          {savant.cloned_from_id && (
+            <ImportedBadge originalSavantId={savant.cloned_from_id} />
+          )}
         </div>
         <Link href={`/savants/${savant.id}/chat`}>
           <Button size="lg">
@@ -143,6 +148,7 @@ export default async function SavantPage({ params }: SavantPageProps) {
           <TabsTrigger value="prompts">Prompts</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsTrigger value="publish">Publish</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
@@ -197,6 +203,10 @@ export default async function SavantPage({ params }: SavantPageProps) {
 
         <TabsContent value="settings">
           <SavantSettings savant={savant} />
+        </TabsContent>
+
+        <TabsContent value="publish">
+          <SavantPublish savant={savant} />
         </TabsContent>
       </Tabs>
     </div>
