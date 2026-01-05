@@ -2,39 +2,65 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 import { createClient } from '@/lib/supabase/client'
-import { Loader2, Plus, Check } from 'lucide-react'
+import { getBrandVoice } from '@/actions/brand-voice'
+import { Loader2, Check, Mic2, ExternalLink, CheckCircle2, XCircle } from 'lucide-react'
+import type { BrandVoice } from '@/types/brand-voice'
 
 interface SavantPromptsProps {
   savantId: string
   accountId: string
+  initialUseBrandVoice?: boolean
 }
 
-export function SavantPrompts({ savantId, accountId }: SavantPromptsProps) {
+export function SavantPrompts({ savantId, accountId, initialUseBrandVoice }: SavantPromptsProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [newPrompt, setNewPrompt] = useState('')
   const [currentPrompt, setCurrentPrompt] = useState('')
+  const [brandVoice, setBrandVoice] = useState<BrandVoice | null>(null)
+  const [useBrandVoice, setUseBrandVoice] = useState(initialUseBrandVoice ?? true)
+  const [isLoadingBrandVoice, setIsLoadingBrandVoice] = useState(true)
+  const [isTogglingBrandVoice, setIsTogglingBrandVoice] = useState(false)
 
-  // Load current system prompt when component mounts
+  // Load current system prompt and brand voice when component mounts
   useEffect(() => {
-    async function loadPrompt() {
+    async function loadData() {
       const supabase = createClient()
-      const { data } = await supabase
+
+      // Load savant's system prompt and model_config
+      const { data: savantData } = await supabase
         .from('savants')
-        .select('system_prompt')
+        .select('system_prompt, model_config')
         .eq('id', savantId)
         .single()
 
-      if (data?.system_prompt) {
-        setCurrentPrompt(data.system_prompt)
-        setNewPrompt(data.system_prompt)
+      if (savantData?.system_prompt) {
+        setCurrentPrompt(savantData.system_prompt)
+        setNewPrompt(savantData.system_prompt)
       }
+
+      // Get use_brand_voice from model_config
+      const modelConfig = savantData?.model_config as { use_brand_voice?: boolean } | null
+      if (modelConfig?.use_brand_voice !== undefined) {
+        setUseBrandVoice(modelConfig.use_brand_voice)
+      }
+
+      // Load brand voice
+      setIsLoadingBrandVoice(true)
+      const brandVoiceResult = await getBrandVoice()
+      if (brandVoiceResult.success && brandVoiceResult.data) {
+        setBrandVoice(brandVoiceResult.data)
+      }
+      setIsLoadingBrandVoice(false)
     }
-    loadPrompt()
+    loadData()
   }, [savantId])
 
   async function handleCreatePrompt() {
@@ -58,7 +84,6 @@ export function SavantPrompts({ savantId, accountId }: SavantPromptsProps) {
 
       setCurrentPrompt(newPrompt)
       router.refresh()
-      alert('System prompt updated successfully!')
     } catch (error) {
       console.error('Error updating prompt:', error)
       alert('Failed to update prompt. Please try again.')
@@ -67,8 +92,51 @@ export function SavantPrompts({ savantId, accountId }: SavantPromptsProps) {
     }
   }
 
+  async function handleToggleBrandVoice(checked: boolean) {
+    setIsTogglingBrandVoice(true)
+    setUseBrandVoice(checked)
+
+    try {
+      const supabase = createClient()
+
+      // Get current model_config
+      const { data: savantData } = await supabase
+        .from('savants')
+        .select('model_config')
+        .eq('id', savantId)
+        .single()
+
+      const currentConfig = (savantData?.model_config as Record<string, unknown>) || {}
+
+      // Update model_config with new use_brand_voice value
+      const { error } = await supabase
+        .from('savants')
+        .update({
+          model_config: {
+            ...currentConfig,
+            use_brand_voice: checked
+          }
+        })
+        .eq('id', savantId)
+        .eq('account_id', accountId)
+
+      if (error) {
+        throw error
+      }
+
+      router.refresh()
+    } catch (error) {
+      console.error('Error toggling brand voice:', error)
+      setUseBrandVoice(!checked) // Revert on error
+      alert('Failed to update brand voice setting. Please try again.')
+    } finally {
+      setIsTogglingBrandVoice(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
+      {/* System Prompt Card */}
       <Card>
         <CardHeader>
           <CardTitle>System Prompt</CardTitle>
@@ -104,20 +172,96 @@ export function SavantPrompts({ savantId, accountId }: SavantPromptsProps) {
         </CardContent>
       </Card>
 
+      {/* Brand Voice Card */}
       <Card>
         <CardHeader>
-          <CardTitle>Account-Level Prompts</CardTitle>
-          <CardDescription>
-            These prompts apply to all Savants in your account (coming soon)
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                <Mic2 className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Brand Voice</CardTitle>
+                <CardDescription>
+                  Account-level personality that applies to this Savant
+                </CardDescription>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Label htmlFor="use-brand-voice" className="text-sm">
+                {useBrandVoice ? 'Enabled' : 'Disabled'}
+              </Label>
+              <Switch
+                id="use-brand-voice"
+                checked={useBrandVoice}
+                onCheckedChange={handleToggleBrandVoice}
+                disabled={isTogglingBrandVoice || !brandVoice}
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="text-sm text-muted-foreground">
-            Account-level prompts will be available in a future update.
-          </div>
+          {isLoadingBrandVoice ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : brandVoice ? (
+            <div className="space-y-4">
+              {/* Status indicator */}
+              <div className="flex items-center gap-2 text-sm">
+                {useBrandVoice && brandVoice.is_active ? (
+                  <>
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    <span className="text-green-600">Brand voice is active for this Savant</span>
+                  </>
+                ) : useBrandVoice && !brandVoice.is_active ? (
+                  <>
+                    <XCircle className="h-4 w-4 text-yellow-500" />
+                    <span className="text-yellow-600">Brand voice is globally disabled</span>
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">Brand voice is disabled for this Savant</span>
+                  </>
+                )}
+              </div>
+
+              {/* Brand voice preview */}
+              <div className="rounded-lg bg-muted/50 p-4">
+                <p className="text-sm text-muted-foreground line-clamp-4">
+                  {brandVoice.prompt}
+                </p>
+              </div>
+
+              {/* Edit link */}
+              <div className="flex justify-end">
+                <Link href="/prompts">
+                  <Button variant="outline" size="sm">
+                    <ExternalLink className="mr-2 h-3 w-3" />
+                    Edit Brand Voice
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-6">
+              <Mic2 className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
+              <p className="text-sm text-muted-foreground mb-3">
+                No brand voice configured yet
+              </p>
+              <Link href="/prompts">
+                <Button variant="outline" size="sm">
+                  <Mic2 className="mr-2 h-3 w-3" />
+                  Set Up Brand Voice
+                </Button>
+              </Link>
+            </div>
+          )}
         </CardContent>
       </Card>
 
+      {/* Best Practices Card */}
       <Card>
         <CardHeader>
           <CardTitle>Best Practices</CardTitle>

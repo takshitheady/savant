@@ -25,8 +25,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Slider } from '@/components/ui/slider'
+import { Switch } from '@/components/ui/switch'
 import { createClient } from '@/lib/supabase/client'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Mic2 } from 'lucide-react'
 import { SelectGroup, SelectLabel } from '@/components/ui/select'
 
 // Available AI models
@@ -56,6 +57,7 @@ const savantSchema = z.object({
   model: z.string(),
   temperature: z.number().min(0).max(2),
   systemPrompt: z.string().max(5000).optional(),
+  useBrandVoice: z.boolean(),
 })
 
 type SavantFormValues = z.infer<typeof savantSchema>
@@ -66,6 +68,7 @@ const defaultValues: SavantFormValues = {
   model: 'anthropic/claude-sonnet-4.5',
   temperature: 0.7,
   systemPrompt: '',
+  useBrandVoice: true,
 }
 
 export function SavantForm() {
@@ -169,6 +172,7 @@ export function SavantForm() {
             provider: 'multi',
             temperature: values.temperature,
             max_tokens: 4096,
+            use_brand_voice: values.useBrandVoice,
           },
         })
         .select()
@@ -343,6 +347,30 @@ export function SavantForm() {
                 Define the personality and behavior of your Savant. You can also add this later.
               </FormDescription>
               <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="useBrandVoice"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <Mic2 className="h-4 w-4 text-primary" />
+                  <FormLabel className="text-base">Use Brand Voice</FormLabel>
+                </div>
+                <FormDescription>
+                  Apply your account's brand voice personality to this Savant
+                </FormDescription>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
             </FormItem>
           )}
         />

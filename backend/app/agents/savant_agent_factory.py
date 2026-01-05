@@ -83,11 +83,27 @@ class SavantAgentFactory:
         # Get system prompt directly from savant
         savant_prompt = savant_data.get('system_prompt')
 
+        # Extract model config to check brand voice preference
+        model_config = savant_data.get('model_config', {})
+
+        # Check if savant should use brand voice
+        # Default: True for new savants, False for imported savants (have cloned_from_id)
+        use_brand_voice = model_config.get('use_brand_voice')
+        if use_brand_voice is None:
+            # If not explicitly set, default based on whether it's an import
+            use_brand_voice = savant_data.get('cloned_from_id') is None
+
         # Fetch account-level prompts
-        account_prompts_result = self.supabase.table('account_prompts')\
-            .select('prompt, priority')\
+        account_prompts_query = self.supabase.table('account_prompts')\
+            .select('prompt, priority, is_brand_voice')\
             .eq('account_id', account_id)\
-            .eq('is_active', True)\
+            .eq('is_active', True)
+
+        # If savant opts out of brand voice, filter out brand voice prompts
+        if not use_brand_voice:
+            account_prompts_query = account_prompts_query.neq('is_brand_voice', True)
+
+        account_prompts_result = account_prompts_query\
             .order('priority', desc=True)\
             .order('created_at')\
             .execute()
@@ -108,8 +124,6 @@ class SavantAgentFactory:
         # Create RAG function with bound savant_id
         rag_function = create_rag_function(savant_id)
 
-        # Extract model config from JSONB
-        model_config = savant_data.get('model_config', {})
         # Default to Claude Sonnet 4.5
         model_name = model_config.get('model', 'anthropic/claude-sonnet-4.5')
         temperature = model_config.get('temperature', 0.7)

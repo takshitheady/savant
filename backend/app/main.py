@@ -29,9 +29,11 @@ app.add_middleware(
 
 # Import custom routes
 from app.routes import chat
+from app.routes import brand_voice
 
 # Include custom routes
 app.include_router(chat.router, prefix="/api", tags=["chat"])
+app.include_router(brand_voice.router, prefix="/api", tags=["brand-voice"])
 
 # Custom health check endpoint
 @app.get("/health")

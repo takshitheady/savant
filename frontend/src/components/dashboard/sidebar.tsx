@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 import {
   Bot,
   Settings,
-  FileText,
+  Mic2,
   LayoutDashboard,
   Sparkles,
   ChevronLeft,
@@ -38,9 +38,9 @@ const navigation = [
     icon: BarChart3,
   },
   {
-    name: 'Prompts',
+    name: 'Your Voice',
     href: '/prompts',
-    icon: FileText,
+    icon: Mic2,
   },
   {
     name: 'Settings',
