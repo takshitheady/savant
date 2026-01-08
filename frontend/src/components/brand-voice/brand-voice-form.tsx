@@ -27,6 +27,7 @@ export function BrandVoiceForm() {
   const [isSaving, setIsSaving] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle')
+  const [generateError, setGenerateError] = useState<string | null>(null)
   const [hasBrandVoice, setHasBrandVoice] = useState(false)
 
   // Load existing brand voice on mount
@@ -49,12 +50,18 @@ export function BrandVoiceForm() {
     if (selectedTraits.length === 0) return
 
     setIsGenerating(true)
+    setGenerateError(null)
     setSaveStatus('idle')
+
     const result = await generateBrandVoicePrompt(selectedTraits)
+
     if (result.success && result.prompt) {
       setGeneratedPrompt(result.prompt)
       setHasChanges(true)
+    } else {
+      setGenerateError(result.error || 'Failed to generate brand voice. Please try again.')
     }
+
     setIsGenerating(false)
   }
 
@@ -132,10 +139,11 @@ export function BrandVoiceForm() {
               setSelectedTraits(traits)
               setHasChanges(true)
               setSaveStatus('idle')
+              setGenerateError(null)
             }}
           />
 
-          <div className="mt-6 flex justify-center">
+          <div className="mt-6 flex flex-col items-center">
             <Button
               onClick={handleGeneratePrompt}
               disabled={selectedTraits.length === 0 || isGenerating}
@@ -148,6 +156,12 @@ export function BrandVoiceForm() {
               )}
               Generate Brand Voice
             </Button>
+            {generateError && (
+              <div className="mt-3 flex items-center gap-2 text-red-600">
+                <AlertCircle className="h-4 w-4" />
+                <span className="text-sm">{generateError}</span>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

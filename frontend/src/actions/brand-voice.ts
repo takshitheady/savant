@@ -64,7 +64,7 @@ export async function generateBrandVoicePrompt(
     }
 
     // Call backend API to generate the prompt
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000'
+    const backendUrl = process.env.AGNO_API_URL || 'http://localhost:8000'
     const response = await fetch(`${backendUrl}/api/generate-brand-voice`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
