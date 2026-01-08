@@ -359,7 +359,7 @@ SCOPES = {
 ### 8.2 Chat with RAG
 
 ```
-1. User sends message
+1. User sends a message
 2. AgentOS receives request
 3. RAG Tool executes:
    a. Generate query embedding
