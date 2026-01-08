@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { createClient } from '@/lib/supabase/client'
 import { Loader2, Upload, FileText, Trash2, Download } from 'lucide-react'
 import { uploadDocument, deleteDocument } from '@/actions/documents'
+import { useOnboarding } from '@/components/onboarding'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +40,7 @@ export function SavantDocuments({
   initialDocuments,
 }: SavantDocumentsProps) {
   const router = useRouter()
+  const { completeMilestone } = useOnboarding()
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
 
@@ -81,6 +83,9 @@ export function SavantDocuments({
 
         setUploadProgress(((i + 1) / files.length) * 100)
       }
+
+      // Track milestone
+      await completeMilestone('firstDocumentUploaded')
 
       // Reset file input
       event.target.value = ''

@@ -21,31 +21,37 @@ const navigation = [
     name: 'Dashboard',
     href: '/dashboard',
     icon: LayoutDashboard,
+    tourId: 'sidebar-dashboard',
   },
   {
     name: 'Savants',
     href: '/savants',
     icon: Bot,
+    tourId: 'sidebar-savants',
   },
   {
-    name: 'Store',
+    name: 'Official Savants',
     href: '/store',
     icon: Store,
+    tourId: 'sidebar-store',
   },
   {
     name: 'Creator',
     href: '/creator-dashboard',
     icon: BarChart3,
+    tourId: 'sidebar-creator',
   },
   {
     name: 'Your Voice',
     href: '/prompts',
     icon: Mic2,
+    tourId: 'sidebar-voice',
   },
   {
     name: 'Settings',
     href: '/settings',
     icon: Settings,
+    tourId: 'sidebar-settings',
   },
 ]
 
@@ -91,6 +97,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 key={item.name}
                 href={item.href}
                 title={collapsed ? item.name : undefined}
+                data-tour={item.tourId}
                 className={cn(
                   'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
                   collapsed && 'justify-center px-0',

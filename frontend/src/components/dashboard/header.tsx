@@ -55,7 +55,7 @@ export function Header({ user }: HeaderProps) {
       {mounted ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-9 gap-2 rounded-full px-2 hover:bg-muted">
+            <Button variant="ghost" className="relative h-9 gap-2 rounded-full px-2 hover:bg-muted" data-tour="header-profile">
               <Avatar className="h-8 w-8">
                 <AvatarImage src={user.user_metadata?.avatar_url} alt={displayName} />
                 <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
@@ -87,7 +87,7 @@ export function Header({ user }: HeaderProps) {
           </DropdownMenuContent>
         </DropdownMenu>
       ) : (
-        <Button variant="ghost" className="relative h-9 gap-2 rounded-full px-2">
+        <Button variant="ghost" className="relative h-9 gap-2 rounded-full px-2" data-tour="header-profile">
           <Avatar className="h-8 w-8">
             <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
               {initials}

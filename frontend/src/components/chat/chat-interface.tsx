@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { createClient } from '@/lib/supabase/client'
 import { Send, Bot, User, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useOnboarding } from '@/components/onboarding'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
@@ -35,6 +36,7 @@ export function ChatInterface({
   initialConversationId,
 }: ChatInterfaceProps) {
   const router = useRouter()
+  const { completeMilestone } = useOnboarding()
   const [messages, setMessages] = useState<Message[]>(initialMessages)
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -143,6 +145,11 @@ export function ChatInterface({
           }
         }
       }
+
+      // Track first message milestone
+      completeMilestone('firstMessageSent').catch(() => {
+        // Silently fail - not critical
+      })
 
       router.refresh()
     } catch (error) {

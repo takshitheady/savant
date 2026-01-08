@@ -59,7 +59,7 @@ export default async function DashboardPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-10">
       {/* Welcome */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between" data-tour="dashboard-welcome">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
             {greeting}, {userName}
@@ -69,7 +69,7 @@ export default async function DashboardPage() {
           </p>
         </div>
         <Link href="/savants/new">
-          <Button className="gap-2 rounded-xl">
+          <Button className="gap-2 rounded-xl" data-tour="new-savant-button">
             <Plus className="h-4 w-4" />
             New Savant
           </Button>

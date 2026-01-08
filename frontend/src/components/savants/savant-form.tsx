@@ -28,6 +28,7 @@ import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
 import { createClient } from '@/lib/supabase/client'
 import { Loader2, Mic2 } from 'lucide-react'
+import { useOnboarding } from '@/components/onboarding'
 import { SelectGroup, SelectLabel } from '@/components/ui/select'
 
 // Available AI models
@@ -73,6 +74,7 @@ const defaultValues: SavantFormValues = {
 
 export function SavantForm() {
   const router = useRouter()
+  const { completeMilestone } = useOnboarding()
   const [isLoading, setIsLoading] = useState(false)
 
   const form = useForm<SavantFormValues>({
@@ -181,6 +183,9 @@ export function SavantForm() {
       if (error) {
         throw error
       }
+
+      // Track milestone
+      await completeMilestone('firstSavantCreated')
 
       // Redirect to the savant's page
       router.push(`/savants/${savant.id}`)
@@ -310,7 +315,7 @@ export function SavantForm() {
           name="temperature"
           render={({ field: { value, onChange } }) => (
             <FormItem>
-              <FormLabel>Temperature: {value}</FormLabel>
+              <FormLabel>Creativity: {value}</FormLabel>
               <FormControl>
                 <Slider
                   min={0}
@@ -322,8 +327,8 @@ export function SavantForm() {
                 />
               </FormControl>
               <FormDescription>
-                Lower values make output more focused and deterministic. Higher values make it more
-                creative.
+                Lower values make responses more focused and consistent. Higher values make them more
+                creative and varied.
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -355,7 +360,7 @@ export function SavantForm() {
           control={form.control}
           name="useBrandVoice"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+            <FormItem className="flex flex-row items-center justify-between rounded-lg bg-muted/30 p-4">
               <div className="space-y-0.5">
                 <div className="flex items-center gap-2">
                   <Mic2 className="h-4 w-4 text-primary" />

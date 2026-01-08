@@ -3,11 +3,12 @@ import { getCategories, searchStoreListings, getFeaturedListings } from '@/actio
 import { CategoryNav } from '@/components/store/category-nav'
 import { StoreSearch } from '@/components/store/store-search'
 import { SavantCard } from '@/components/store/savant-card'
+import { MilestoneTracker } from '@/components/onboarding'
 import { Sparkles, TrendingUp } from 'lucide-react'
 
 export const metadata = {
-  title: 'Store | Savant',
-  description: 'Discover and import AI assistants created by the community',
+  title: 'Official Savants | Savant',
+  description: 'Discover and import official AI assistants created by Heady',
 }
 
 function LoadingGrid() {
@@ -49,9 +50,9 @@ async function AllListingsSection() {
         <div className="rounded-full bg-muted p-4 mb-4">
           <TrendingUp className="h-8 w-8 text-muted-foreground" />
         </div>
-        <h3 className="text-lg font-semibold text-foreground">No savants yet</h3>
+        <h3 className="text-lg font-semibold text-foreground">Coming soon</h3>
         <p className="mt-1 text-sm text-muted-foreground max-w-md">
-          Be the first to publish a savant to the store! Go to any of your savants and click "Publish to Store".
+          Official Savants created by Heady will appear here. Check back soon!
         </p>
       </div>
     )
@@ -77,11 +78,13 @@ export default async function StorePage() {
 
   return (
     <div className="space-y-8">
+      {/* Track store visit milestone */}
+      <MilestoneTracker milestone="storeExplored" />
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Savant Store</h1>
+        <h1 className="text-3xl font-bold text-foreground">Official Savants</h1>
         <p className="mt-2 text-muted-foreground">
-          Discover and import AI assistants created by the community
+          Discover and import official AI assistants created by Heady
         </p>
       </div>
 

@@ -14,9 +14,11 @@ import {
   saveBrandVoice,
   toggleBrandVoice
 } from '@/actions/brand-voice'
+import { useOnboarding } from '@/components/onboarding'
 import type { PersonalityTraitId, BrandVoiceTraits } from '@/types/brand-voice'
 
 export function BrandVoiceForm() {
+  const { completeMilestone } = useOnboarding()
   const [selectedTraits, setSelectedTraits] = useState<PersonalityTraitId[]>([])
   const [generatedPrompt, setGeneratedPrompt] = useState('')
   const [isActive, setIsActive] = useState(true)
@@ -65,6 +67,8 @@ export function BrandVoiceForm() {
       setHasChanges(false)
       setSaveStatus('success')
       setHasBrandVoice(true)
+      // Track milestone
+      await completeMilestone('brandVoiceConfigured')
       setTimeout(() => setSaveStatus('idle'), 3000)
     } else {
       setSaveStatus('error')
