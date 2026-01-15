@@ -30,9 +30,12 @@
 | `SUPABASE_DB_URL` | Yes | PostgreSQL connection string |
 | `OPENAI_API_KEY` | Yes | For embeddings |
 | `OPENROUTER_API_KEY` | Yes | For LLM calls (brand voice, chat) |
-| `FIRECRAWL_API_KEY` | No | For website analysis in advanced brand voice (get at firecrawl.dev) |
+| `FIRECRAWL_API_KEY` | **Optional** | For website analysis in advanced brand voice (get at firecrawl.dev) |
 | `CORS_ORIGINS` | Yes | Frontend URLs, comma-separated |
 | `DEFAULT_MODEL` | No | Default: gpt-4o-mini |
+
+**Note on FIRECRAWL_API_KEY:**
+This key is optional. Without it, the website analysis feature will return a user-friendly error message, but the rest of the brand voice feature (simple mode and manual entry in advanced mode) will work normally. Free tier: 500 credits/month at firecrawl.dev.
 
 ### Example CORS_ORIGINS
 ```
@@ -72,9 +75,27 @@ https://savant-backend-production-xxxx.up.railway.app
 - [ ] CORS_ORIGINS in Railway includes Vercel frontend URL
 - [ ] Test: Create a savant
 - [ ] Test: Generate brand voice (simple mode)
+  - Select 2-3 traits
+  - Click "Generate Brand Voice"
+  - Verify prompt generated and saved
 - [ ] Test: Generate brand voice (advanced mode with business info)
+  - Expand Advanced Options
+  - Fill business information fields
+  - Add brand identity details
+  - Click "Generate Brand Voice"
+  - Verify comprehensive prompt generated
+- [ ] Test: Website analysis feature
+  - Enter a website URL in Business Information section
+  - Click "Analyze" button
+  - Verify auto-fill of business name, description, category
+- [ ] Verify Firecrawl integration (or confirm graceful degradation if no API key)
+  - If FIRECRAWL_API_KEY set: website analysis should work
+  - If no key: should show clear optional error message in amber
+- [ ] Test: Onboarding tour shows advanced brand voice step
+  - Start fresh onboarding or reset tour
+  - Verify tour step appears for Advanced Options section
 - [ ] Test: Chat with savant
-- [ ] (Optional) Set FIRECRAWL_API_KEY for website analysis feature
+- [ ] Verify brand voice applies to all Savants in account
 
 ## Troubleshooting
 

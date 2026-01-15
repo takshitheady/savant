@@ -94,6 +94,46 @@
 | Account default prompt | P1 | Applied to all Savants |
 | Prompt overrides | P1 | Priority-based resolution |
 
+#### 4.6 Brand Voice
+| Feature | Priority | Description |
+|---------|----------|-------------|
+| Trait-based generation | P0 | Select 2-10 personality traits, AI generates system prompt |
+| Simple mode | P0 | Quick trait selection with custom notes |
+| Advanced mode | P1 | Comprehensive brand context with 3 sections |
+| Business information | P1 | Company details, category, ideal customer |
+| Website analysis | P1 | Auto-extract business info from URL using Firecrawl + AI |
+| Brand identity | P1 | Pillars, differentiators, messaging restrictions |
+| Voice dimensions | P1 | 7 "This vs That" spectrums (casual/formal, etc.) |
+| Quick-select presets | P1 | Common options for faster form completion |
+| Onboarding integration | P1 | Tour step highlighting advanced options |
+
+**Brand Voice Details:**
+
+Users can define their brand's personality to ensure consistent communication across all Savants.
+
+**Simple Mode:**
+- Select from 10 personality traits: Cheerful, Agreeable, Social, Gen Z, Funny, Realistic, Formal, Empathetic, Concise, Detailed
+- Add custom notes for additional context
+- AI generates a 2-3 paragraph system prompt automatically using Claude Haiku 4.5
+
+**Advanced Mode:**
+- **Business Information**: Company name, website URL, business description, primary category (9 options), locations, ideal customer
+  - **Website Analysis**: Enter URL and click "Analyze" to auto-extract business info using Firecrawl API + AI extraction
+  - Quick-select presets for locations (USA, Global, Europe, Asia-Pacific) and customer types (B2B, B2C, Enterprise, SMB, Startups)
+- **Brand Identity**: Brand pillars (multi-select with presets), voice description, differentiators, past campaign learnings, messaging restrictions
+  - Voice style presets: Professional, Friendly, Expert, Warm, Bold
+- **Voice Dimensions**: 7 spectrums with A/B/Neither options
+  - Casual vs Formal, Playful vs Serious, Polished vs Gritty, Warm vs Cool, Classic vs Trendy, Expert vs Insider, Laid-back vs Bold
+  - Optional notes for each dimension
+
+**Technical Implementation:**
+- Powered by Claude Haiku 4.5 via OpenRouter API
+- Website scraping via Firecrawl API (optional, 500 free credits/month)
+- AI extraction of structured business data from website content
+- Stored in `account_prompts` table with JSONB for flexibility (`brand_voice_traits` field)
+- Applied to all Savants in the account with priority-based system (priority: 100)
+- Expandable UI with completion tracking (X/3 sections)
+
 ### Future Phases
 
 #### Phase 2 - Advanced Features
@@ -179,6 +219,8 @@ Open Savant → Enter Message → Retrieve RAG Context → Stream Response → D
 |---------|---------|------------|
 | Supabase | Auth, DB, Storage | Low |
 | OpenAI | LLM, Embeddings | Medium |
+| OpenRouter | Claude API access for brand voice | Low |
+| Firecrawl | Website scraping (optional) | Low |
 | Stripe | Payments | Low |
 | Autumn | Usage billing | Low |
 | Vercel | Frontend hosting | Low |

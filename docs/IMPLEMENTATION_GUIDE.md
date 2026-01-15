@@ -992,7 +992,564 @@ CORS_ORIGINS=http://localhost:3000
 
 ---
 
-## 8. Next Steps
+## 6. Phase 6: Brand Voice System
+
+### 6.1 Install Additional Dependencies
+
+**Backend:**
+```bash
+cd backend
+pip install httpx firecrawl-py openai
+pip freeze > requirements.txt
+```
+
+**Frontend:**
+```bash
+cd frontend
+# Already included (uses existing dependencies)
+```
+
+### 6.2 Setup API Keys
+
+Add to **backend/.env**:
+```env
+OPENROUTER_API_KEY=sk-or-xxx    # Required for brand voice generation
+FIRECRAWL_API_KEY=fc-xxx        # Optional for website analysis
+```
+
+Get API keys:
+- **OpenRouter**: https://openrouter.ai/keys
+- **Firecrawl**: https://firecrawl.dev (500 free credits/month)
+
+### 6.3 Brand Voice Types
+
+Create **frontend/src/types/brand-voice.ts**:
+
+```typescript
+export const PERSONALITY_TRAITS = [
+  { id: 'cheerful', label: 'Cheerful', description: 'Upbeat and positive tone' },
+  { id: 'agreeable', label: 'Agreeable', description: 'Accommodating and supportive' },
+  { id: 'social', label: 'Social', description: 'Conversational and engaging' },
+  { id: 'gen_z', label: 'Gen Z Style', description: 'Casual, trendy language' },
+  { id: 'funny', label: 'Funny', description: 'Uses humor and wit' },
+  { id: 'realistic', label: 'Realistic', description: 'Honest and practical' },
+  { id: 'formal', label: 'Formal', description: 'Professional and polished' },
+  { id: 'empathetic', label: 'Empathetic', description: 'Understanding and caring' },
+  { id: 'concise', label: 'Concise', description: 'Brief and to-the-point' },
+  { id: 'detailed', label: 'Detailed', description: 'Thorough explanations' },
+] as const
+
+export type PersonalityTraitId = typeof PERSONALITY_TRAITS[number]['id']
+
+// Business categories
+export const BUSINESS_CATEGORIES = [
+  'Technology/SaaS',
+  'E-commerce/Retail',
+  'Healthcare',
+  'Finance',
+  'Food & Beverage',
+  'Professional Services',
+  'Education',
+  'Entertainment',
+  'Other',
+] as const
+
+// Advanced mode interfaces
+export interface BusinessInfo {
+  businessName?: string
+  websiteUrl?: string
+  businessDescription?: string
+  primaryCategory?: BusinessCategory
+  locations?: string
+  idealCustomer?: string
+}
+
+export interface BrandIdentity {
+  brandPillars?: string[]
+  voiceDescription?: string
+  differentiators?: string
+  pastCampaigns?: string
+  messagingRestrictions?: string
+}
+
+export interface VoiceDimensionValues {
+  casualVsFormal?: 'a' | 'b' | 'neither'
+  playfulVsSerious?: 'a' | 'b' | 'neither'
+  polishedVsGritty?: 'a' | 'b' | 'neither'
+  warmVsCool?: 'a' | 'b' | 'neither'
+  classicVsTrendy?: 'a' | 'b' | 'neither'
+  expertVsInsider?: 'a' | 'b' | 'neither'
+  laidbackVsBold?: 'a' | 'b' | 'neither'
+  dimensionNotes?: Record<string, string>
+}
+
+export interface WebsiteAnalysis {
+  title?: string
+  description?: string
+  content?: string
+  analyzedAt?: string
+  error?: string
+}
+
+export interface BrandVoiceAdvanced {
+  businessInfo?: BusinessInfo
+  brandIdentity?: BrandIdentity
+  voiceDimensions?: VoiceDimensionValues
+  websiteAnalysis?: WebsiteAnalysis
+}
+
+export interface BrandVoiceTraits {
+  selectedTraits: PersonalityTraitId[]
+  customNotes?: string
+  advanced?: BrandVoiceAdvanced
+}
+
+export interface BrandVoice {
+  id: string
+  account_id: string
+  name: string
+  prompt: string
+  brand_voice_traits: BrandVoiceTraits | null
+  is_brand_voice: boolean
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+```
+
+### 6.4 Brand Voice API Routes
+
+Create **backend/app/routes/brand_voice.py**:
+
+```python
+"""
+Brand Voice Generation API
+"""
+
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+from typing import List, Optional, Dict
+import os
+import httpx
+from openai import OpenAI
+
+router = APIRouter()
+
+TRAIT_DESCRIPTIONS = {
+    'cheerful': 'maintains an upbeat, positive, and enthusiastic tone',
+    'agreeable': 'is accommodating, supportive, and validates user perspectives',
+    'social': 'is conversational, engaging, and builds rapport',
+    'gen_z': 'uses casual, trendy language with modern expressions',
+    'funny': 'incorporates appropriate humor and wit',
+    'realistic': 'is honest, practical, and sets clear expectations',
+    'formal': 'maintains professional, polished communication',
+    'empathetic': 'shows understanding and emotional awareness',
+    'concise': 'keeps responses brief and to-the-point',
+    'detailed': 'provides thorough, comprehensive explanations',
+}
+
+class GenerateBrandVoiceRequest(BaseModel):
+    traits: List[str]
+    advanced_data: Optional[Dict] = None
+
+class AnalyzeWebsiteRequest(BaseModel):
+    url: str
+
+@router.post("/generate-brand-voice")
+async def generate_brand_voice(request: GenerateBrandVoiceRequest):
+    """Generate a brand voice system prompt from traits"""
+
+    # Build trait descriptions
+    trait_texts = [TRAIT_DESCRIPTIONS[trait] for trait in request.traits
+                   if trait in TRAIT_DESCRIPTIONS]
+
+    if not trait_texts:
+        return {"prompt": ""}
+
+    # Get API key
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY not configured")
+
+    # Call Claude via OpenRouter
+    client = OpenAI(
+        api_key=api_key,
+        base_url="https://openrouter.ai/api/v1"
+    )
+
+    generation_prompt = f"""Create a concise system prompt instruction (2-3 paragraphs) that defines a brand voice with these characteristics:
+
+{chr(10).join(f'- {text}' for text in trait_texts)}
+
+The prompt should:
+1. Be written as instructions for an AI assistant
+2. Be natural and not sound like a list
+3. Include specific guidance on tone, language style, and approach
+4. Be practical and actionable
+
+Output ONLY the system prompt text, no explanations or meta-commentary."""
+
+    response = client.chat.completions.create(
+        model="anthropic/claude-haiku-4.5",
+        messages=[{"role": "user", "content": generation_prompt}],
+        temperature=0.7,
+        max_tokens=500
+    )
+
+    return {"prompt": response.choices[0].message.content.strip()}
+
+@router.post("/analyze-website")
+async def analyze_website(request: AnalyzeWebsiteRequest):
+    """Analyze website content using Firecrawl API"""
+
+    firecrawl_key = os.getenv("FIRECRAWL_API_KEY")
+    if not firecrawl_key:
+        raise HTTPException(status_code=500, detail="Website analysis not configured")
+
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(
+                "https://api.firecrawl.dev/v1/scrape",
+                headers={
+                    "Authorization": f"Bearer {firecrawl_key}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "url": request.url,
+                    "formats": ["markdown"],
+                    "onlyMainContent": True
+                }
+            )
+
+            if response.status_code == 402:
+                return {
+                    "success": False,
+                    "error": "credits_exhausted",
+                    "message": "Firecrawl credits exhausted. Website analysis is optional - skip this step to continue."
+                }
+
+            if response.status_code != 200:
+                return {
+                    "success": False,
+                    "error": "api_error",
+                    "message": f"Failed to analyze website"
+                }
+
+            data = response.json()
+            metadata = data.get("data", {}).get("metadata", {})
+
+            return {
+                "success": True,
+                "title": metadata.get("title", ""),
+                "description": metadata.get("description", ""),
+            }
+
+    except httpx.TimeoutException:
+        return {
+            "success": False,
+            "error": "timeout",
+            "message": "Website took too long to respond"
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": "unknown",
+            "message": "Failed to analyze website"
+        }
+```
+
+Register the router in **backend/app/main.py**:
+
+```python
+from app.routes import brand_voice
+
+app.include_router(brand_voice.router, prefix="/api")
+```
+
+### 6.5 Server Actions
+
+Create **frontend/src/actions/brand-voice.ts**:
+
+```typescript
+'use server'
+
+import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { revalidatePath } from 'next/cache'
+import type { BrandVoiceTraits, PersonalityTraitId, BrandVoice, BrandVoiceAdvanced } from '@/types/brand-voice'
+
+export async function getBrandVoice(): Promise<{
+  success: boolean
+  data?: BrandVoice | null
+  error?: string
+}> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return { success: false, error: 'Not authenticated' }
+    }
+
+    const adminSupabase = createAdminClient()
+
+    const { data: accountMember } = await adminSupabase
+      .from('account_members')
+      .select('account_id')
+      .eq('user_id', user.id)
+      .single()
+
+    if (!accountMember) {
+      return { success: false, error: 'No account found' }
+    }
+
+    const { data, error } = await adminSupabase
+      .from('account_prompts')
+      .select('*')
+      .eq('account_id', accountMember.account_id)
+      .eq('is_brand_voice', true)
+      .single()
+
+    if (error && error.code !== 'PGRST116') {
+      return { success: false, error: error.message }
+    }
+
+    return { success: true, data: data as BrandVoice | null }
+  } catch (error) {
+    return { success: false, error: 'Failed to get brand voice' }
+  }
+}
+
+export async function generateBrandVoicePrompt(
+  traits: PersonalityTraitId[],
+  advancedData?: BrandVoiceAdvanced
+): Promise<{ success: boolean; prompt?: string; error?: string }> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return { success: false, error: 'Not authenticated' }
+    }
+
+    const backendUrl = process.env.AGNO_API_URL || 'http://localhost:8000'
+    const fullUrl = `${backendUrl}/api/generate-brand-voice`
+
+    const response = await fetch(fullUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        traits,
+        advanced_data: advancedData
+      })
+    })
+
+    if (!response.ok) {
+      return { success: false, error: `Backend error: ${response.status}` }
+    }
+
+    const data = await response.json()
+    return { success: true, prompt: data.prompt }
+  } catch (error) {
+    return { success: false, error: 'Network error' }
+  }
+}
+
+export async function analyzeWebsite(url: string): Promise<{
+  success: boolean
+  title?: string
+  description?: string
+  error?: string
+}> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return { success: false, error: 'Not authenticated' }
+    }
+
+    const backendUrl = process.env.AGNO_API_URL || 'http://localhost:8000'
+    const fullUrl = `${backendUrl}/api/analyze-website`
+
+    const response = await fetch(fullUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    })
+
+    if (!response.ok) {
+      return { success: false, error: 'Failed to analyze website' }
+    }
+
+    const data = await response.json()
+    return {
+      success: data.success !== false,
+      title: data.title,
+      description: data.description,
+      error: data.error
+    }
+  } catch (error) {
+    return { success: false, error: 'Failed to analyze website' }
+  }
+}
+
+export async function saveBrandVoice(
+  traits: BrandVoiceTraits,
+  prompt: string,
+  isActive: boolean = true
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return { success: false, error: 'Not authenticated' }
+    }
+
+    const adminSupabase = createAdminClient()
+
+    const { data: accountMember } = await adminSupabase
+      .from('account_members')
+      .select('account_id')
+      .eq('user_id', user.id)
+      .single()
+
+    if (!accountMember) {
+      return { success: false, error: 'No account found' }
+    }
+
+    // Check if brand voice exists
+    const { data: existing } = await adminSupabase
+      .from('account_prompts')
+      .select('id')
+      .eq('account_id', accountMember.account_id)
+      .eq('is_brand_voice', true)
+      .single()
+
+    if (existing) {
+      // Update existing
+      const { error } = await adminSupabase
+        .from('account_prompts')
+        .update({
+          name: 'Brand Voice',
+          prompt: prompt,
+          brand_voice_traits: traits,
+          is_active: isActive,
+          applies_to_all: true,
+          priority: 100,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existing.id)
+
+      if (error) {
+        return { success: false, error: error.message }
+      }
+    } else {
+      // Insert new
+      const { error } = await adminSupabase
+        .from('account_prompts')
+        .insert({
+          account_id: accountMember.account_id,
+          name: 'Brand Voice',
+          prompt: prompt,
+          brand_voice_traits: traits,
+          is_brand_voice: true,
+          is_active: isActive,
+          applies_to_all: true,
+          priority: 100,
+        })
+
+      if (error) {
+        return { success: false, error: error.message }
+      }
+    }
+
+    revalidatePath('/prompts')
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: 'Failed to save brand voice' }
+  }
+}
+```
+
+### 6.6 UI Components
+
+**Main Form:** `frontend/src/components/brand-voice/brand-voice-form.tsx`
+- Trait selector with chips
+- Advanced section (expandable)
+- Generate button with loading state
+- Generated prompt textarea
+- Save functionality
+
+**Advanced Section:** `frontend/src/components/brand-voice/advanced-section.tsx`
+- Three expandable subsections:
+  - Business Information (with website analysis)
+  - Brand Identity
+  - Voice Dimensions
+
+**Website Analysis:** `frontend/src/components/brand-voice/business-info-form.tsx`
+- URL input with "Analyze" button
+- Auto-fill fields on successful analysis
+- Error handling for Firecrawl failures
+
+### 6.7 Database Migration
+
+Add brand voice fields to `account_prompts` table:
+
+```sql
+-- Run this migration in Supabase SQL Editor or via migration file
+
+ALTER TABLE public.account_prompts
+ADD COLUMN IF NOT EXISTS is_brand_voice BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE public.account_prompts
+ADD COLUMN IF NOT EXISTS brand_voice_traits JSONB;
+
+-- Create index for brand voice lookups
+CREATE INDEX IF NOT EXISTS idx_account_prompts_brand_voice
+ON public.account_prompts (account_id, is_brand_voice);
+```
+
+### 6.8 Testing Brand Voice
+
+**Manual Testing Flow:**
+
+1. Navigate to `/prompts`
+2. Select 2-3 personality traits (e.g., Cheerful, Empathetic)
+3. (Optional) Click "Advanced Options"
+4. (Optional) Enter website URL: `https://example.com`
+5. (Optional) Click "Analyze" button
+6. Verify fields auto-fill (business name, description, etc.)
+7. Click "Generate Brand Voice"
+8. Wait 3-5 seconds for AI generation
+9. Verify prompt appears in textarea
+10. Review generated prompt - should reflect selected traits
+11. Click "Save Brand Voice"
+12. Verify success message
+13. Reload page - verify data persists
+14. Create a new Savant
+15. Start chat - verify brand voice is applied
+
+**API Testing:**
+
+Test backend endpoints directly:
+
+```bash
+# Test generation
+curl -X POST http://localhost:8000/api/generate-brand-voice \
+  -H "Content-Type: application/json" \
+  -d '{"traits": ["cheerful", "empathetic"]}'
+
+# Test website analysis
+curl -X POST http://localhost:8000/api/analyze-website \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://example.com"}'
+```
+
+---
+
+## 7. Next Steps
 
 After completing the MVP:
 

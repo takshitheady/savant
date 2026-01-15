@@ -170,6 +170,9 @@ backend/
 │   │   └── tools/
 │   │       └── rag_tool.py   # Vector search tool
 │   │
+│   ├── routes/
+│   │   └── brand_voice.py    # Brand voice API endpoints
+│   │
 │   ├── middleware/
 │   │   ├── auth.py           # JWT validation (Supabase)
 │   │   ├── rate_limit.py     # Rate limiting
@@ -185,6 +188,72 @@ backend/
 ├── requirements.txt
 ├── Dockerfile
 └── pyproject.toml
+```
+
+### 4.3 Brand Voice System
+
+```
+Frontend Structure:
+src/components/brand-voice/
+├── brand-voice-form.tsx          # Main form container
+├── trait-selector.tsx            # Simple mode: personality traits
+├── advanced-section.tsx          # Advanced mode expandable wrapper
+├── business-info-form.tsx        # Business details + website analysis
+├── brand-identity-form.tsx       # Brand pillars + voice description
+└── voice-dimensions.tsx          # "This vs That" spectrum selectors
+
+Backend Structure:
+backend/app/routes/brand_voice.py
+├── /api/generate-brand-voice     # AI prompt generation from traits
+├── /api/analyze-website          # Firecrawl scraping + AI extraction
+├── extract_business_info()       # AI extraction helper
+└── build_advanced_prompt_context() # Context builder for advanced mode
+```
+
+**Brand Voice Data Flow:**
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                       BRAND VOICE SYSTEM                         │
+├──────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  User selects traits + fills advanced sections                  │
+│                    ↓                                             │
+│  Frontend (brand-voice-form.tsx)                                 │
+│                    ↓                                             │
+│  Server Action (generateBrandVoicePrompt)                        │
+│                    ↓                                             │
+│  Backend API (/api/generate-brand-voice)                         │
+│                    ↓                                             │
+│  OpenRouter → Claude Haiku 4.5                                   │
+│                    ↓                                             │
+│  Generated system prompt returned                                │
+│                    ↓                                             │
+│  Saved to account_prompts.brand_voice_traits (JSONB)            │
+│                    ↓                                             │
+│  Applied to all Savants in account                               │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+**Website Analysis Flow:**
+
+```
+User enters website URL → Click "Analyze"
+           ↓
+Backend /api/analyze-website
+           ↓
+Firecrawl API (scrapes to markdown)
+           ↓
+Claude Haiku extracts structured data:
+  - Business name
+  - Business description
+  - Primary category
+  - Target audience
+  - Services
+  - Tone hints
+           ↓
+Returns JSON → Frontend auto-fills form fields
 ```
 
 ---
@@ -226,11 +295,50 @@ backend/
 | Table | Purpose | Key Fields |
 |-------|---------|------------|
 | `accounts` | Multi-tenant root | `id`, `owner_id`, `default_system_prompt` |
+| `account_prompts` | Account-level prompts & brand voice | `id`, `account_id`, `is_brand_voice`, `brand_voice_traits` (JSONB) |
 | `savants` | AI bots | `id`, `account_id`, `system_prompt`, `model_config`, `rag_config` |
 | `documents` | Uploaded files | `id`, `savant_id`, `file_path`, `status` |
 | `document_chunks` | Vector embeddings | `id`, `savant_id`, `content`, `embedding` |
 | `conversations` | Chat sessions | `id`, `savant_id`, `session_id` |
 | `messages` | Chat messages | `id`, `conversation_id`, `role`, `content` |
+
+**Brand Voice Storage:**
+
+Brand voice is stored in `account_prompts` table with:
+- `is_brand_voice: true` - Flag to identify the brand voice prompt
+- `brand_voice_traits: JSONB` - All trait data in flexible JSON format:
+
+```json
+{
+  "selectedTraits": ["cheerful", "empathetic"],
+  "customNotes": "Always mention 24/7 support",
+  "advanced": {
+    "businessInfo": {
+      "businessName": "Acme Inc",
+      "businessDescription": "...",
+      "primaryCategory": "Technology/SaaS",
+      "locations": "Global",
+      "idealCustomer": "Enterprise teams"
+    },
+    "brandIdentity": {
+      "brandPillars": ["Innovation", "Speed"],
+      "voiceDescription": "Professional but approachable",
+      "differentiators": "...",
+      "messagingRestrictions": "..."
+    },
+    "voiceDimensions": {
+      "casualVsFormal": "b",
+      "warmVsCool": "a",
+      "dimensionNotes": {}
+    },
+    "websiteAnalysis": {
+      "title": "...",
+      "content": "...",
+      "analyzedAt": "2026-01-15T10:30:00Z"
+    }
+  }
+}
+```
 
 ### 5.3 Vector Search Function
 
@@ -278,7 +386,50 @@ $$ LANGUAGE sql;
 | POST | `/agents/{agent_id}/runs/{run_id}/cancel` | Cancel run |
 | GET | `/health` | Health check |
 
-### 6.3 Chat API Flow
+### 6.3 Brand Voice Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/generate-brand-voice` | Generate system prompt from personality traits using Claude Haiku 4.5 |
+| POST | `/api/analyze-website` | Scrape website with Firecrawl and extract business info with AI |
+
+**Generate Brand Voice Request:**
+```json
+{
+  "traits": ["cheerful", "empathetic"],
+  "advanced_data": {
+    "businessInfo": {...},
+    "brandIdentity": {...},
+    "voiceDimensions": {...}
+  }
+}
+```
+
+**Analyze Website Request:**
+```json
+{
+  "url": "https://example.com"
+}
+```
+
+**Analyze Website Response:**
+```json
+{
+  "success": true,
+  "title": "Company Name",
+  "description": "Meta description",
+  "extracted": {
+    "businessName": "...",
+    "businessDescription": "...",
+    "primaryCategory": "Technology/SaaS",
+    "targetAudience": "...",
+    "services": "...",
+    "toneHints": "..."
+  }
+}
+```
+
+### 6.4 Chat API Flow
 
 ```
 1. Browser → POST /api/savants/{id}/chat
@@ -509,6 +660,8 @@ AGNO_API_URL=https://savant-backend.railway.app
 SUPABASE_URL=https://xxx.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=xxx
 OPENAI_API_KEY=sk-xxx
+OPENROUTER_API_KEY=sk-or-xxx
+FIRECRAWL_API_KEY=fc-xxx
 CORS_ORIGINS=https://savant.vercel.app
 ```
 
