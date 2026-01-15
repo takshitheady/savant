@@ -49,16 +49,21 @@ export function BrandVoiceForm() {
   const handleGeneratePrompt = async () => {
     if (selectedTraits.length === 0) return
 
+    console.log('[BrandVoiceForm] Generate clicked with traits:', selectedTraits)
+
     setIsGenerating(true)
     setGenerateError(null)
     setSaveStatus('idle')
 
     const result = await generateBrandVoicePrompt(selectedTraits)
 
+    console.log('[BrandVoiceForm] Server action result:', result)
+
     if (result.success && result.prompt) {
       setGeneratedPrompt(result.prompt)
       setHasChanges(true)
     } else {
+      console.error('[BrandVoiceForm] Error:', result.error)
       setGenerateError(result.error || 'Failed to generate brand voice. Please try again.')
     }
 

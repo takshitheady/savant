@@ -78,5 +78,6 @@ python-docx==1.1.2
 tiktoken==0.8.0
 
 # Agno Memory Storage (PostgreSQL)
+psycopg>=3.0.0
 psycopg-binary>=3.0.0
 sqlalchemy>=2.0.0

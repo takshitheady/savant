@@ -55,33 +55,50 @@ export async function getBrandVoice(): Promise<{
 export async function generateBrandVoicePrompt(
   traits: PersonalityTraitId[]
 ): Promise<{ success: boolean; prompt?: string; error?: string }> {
+  console.log('[generateBrandVoicePrompt] Starting with traits:', traits)
+
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
+    console.log('[generateBrandVoicePrompt] User:', user ? user.id : 'NOT AUTHENTICATED')
+
     if (!user) {
+      console.log('[generateBrandVoicePrompt] ERROR: Not authenticated')
       return { success: false, error: 'Not authenticated' }
     }
 
     // Call backend API to generate the prompt
     const backendUrl = process.env.AGNO_API_URL || 'http://localhost:8000'
-    const response = await fetch(`${backendUrl}/api/generate-brand-voice`, {
+    const fullUrl = `${backendUrl}/api/generate-brand-voice`
+
+    console.log('[generateBrandVoicePrompt] AGNO_API_URL env:', process.env.AGNO_API_URL)
+    console.log('[generateBrandVoicePrompt] Using backend URL:', backendUrl)
+    console.log('[generateBrandVoicePrompt] Full URL:', fullUrl)
+    console.log('[generateBrandVoicePrompt] Request body:', JSON.stringify({ traits }))
+
+    const response = await fetch(fullUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ traits })
     })
 
+    console.log('[generateBrandVoicePrompt] Response status:', response.status)
+    console.log('[generateBrandVoicePrompt] Response ok:', response.ok)
+
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('Backend error:', errorText)
-      return { success: false, error: 'Failed to generate brand voice' }
+      console.error('[generateBrandVoicePrompt] Backend error response:', errorText)
+      return { success: false, error: `Backend error: ${response.status} - ${errorText}` }
     }
 
     const data = await response.json()
+    console.log('[generateBrandVoicePrompt] Success! Prompt length:', data.prompt?.length)
     return { success: true, prompt: data.prompt }
   } catch (error) {
-    console.error('Error in generateBrandVoicePrompt:', error)
-    return { success: false, error: 'Failed to generate brand voice' }
+    console.error('[generateBrandVoicePrompt] CATCH ERROR:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return { success: false, error: `Network error: ${errorMessage}` }
   }
 }
 
