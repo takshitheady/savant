@@ -42,6 +42,14 @@ export const TOUR_STEPS: TourStep[] = [
     spotlightPadding: 4,
   },
   {
+    id: 'advanced-brand-voice',
+    target: '[data-tour="advanced-brand-voice"]',
+    title: 'Advanced Brand Options',
+    content: 'Want richer results? Add your business details, brand pillars, and voice style. You can even paste your website URL to auto-fill information!',
+    placement: 'top',
+    spotlightPadding: 8,
+  },
+  {
     id: 'sidebar-settings',
     target: '[data-tour="sidebar-settings"]',
     title: 'Settings',

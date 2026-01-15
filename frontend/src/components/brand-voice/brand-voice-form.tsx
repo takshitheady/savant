@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { TraitSelector } from './trait-selector'
+import { AdvancedSection } from './advanced-section'
 import { Loader2, Sparkles, Save, AlertCircle, CheckCircle2 } from 'lucide-react'
 import {
   getBrandVoice,
@@ -15,11 +16,12 @@ import {
   toggleBrandVoice
 } from '@/actions/brand-voice'
 import { useOnboarding } from '@/components/onboarding'
-import type { PersonalityTraitId, BrandVoiceTraits } from '@/types/brand-voice'
+import type { PersonalityTraitId, BrandVoiceTraits, BrandVoiceAdvanced } from '@/types/brand-voice'
 
 export function BrandVoiceForm() {
   const { completeMilestone } = useOnboarding()
   const [selectedTraits, setSelectedTraits] = useState<PersonalityTraitId[]>([])
+  const [advancedData, setAdvancedData] = useState<BrandVoiceAdvanced>({})
   const [generatedPrompt, setGeneratedPrompt] = useState('')
   const [isActive, setIsActive] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
@@ -37,6 +39,7 @@ export function BrandVoiceForm() {
       if (result.success && result.data) {
         const traits = result.data.brand_voice_traits as BrandVoiceTraits | null
         setSelectedTraits(traits?.selectedTraits || [])
+        setAdvancedData(traits?.advanced || {})
         setGeneratedPrompt(result.data.prompt || '')
         setIsActive(result.data.is_active ?? true)
         setHasBrandVoice(true)
@@ -50,12 +53,13 @@ export function BrandVoiceForm() {
     if (selectedTraits.length === 0) return
 
     console.log('[BrandVoiceForm] Generate clicked with traits:', selectedTraits)
+    console.log('[BrandVoiceForm] Advanced data:', advancedData)
 
     setIsGenerating(true)
     setGenerateError(null)
     setSaveStatus('idle')
 
-    const result = await generateBrandVoicePrompt(selectedTraits)
+    const result = await generateBrandVoicePrompt(selectedTraits, advancedData)
 
     console.log('[BrandVoiceForm] Server action result:', result)
 
@@ -73,7 +77,10 @@ export function BrandVoiceForm() {
   const handleSave = async () => {
     setIsSaving(true)
     setSaveStatus('idle')
-    const traits: BrandVoiceTraits = { selectedTraits }
+    const traits: BrandVoiceTraits = {
+      selectedTraits,
+      advanced: Object.keys(advancedData).length > 0 ? advancedData : undefined
+    }
     const result = await saveBrandVoice(traits, generatedPrompt, isActive)
     if (result.success) {
       setHasChanges(false)
@@ -146,6 +153,17 @@ export function BrandVoiceForm() {
               setSaveStatus('idle')
               setGenerateError(null)
             }}
+          />
+
+          {/* Advanced Section */}
+          <AdvancedSection
+            values={advancedData}
+            onChange={(data) => {
+              setAdvancedData(data)
+              setHasChanges(true)
+              setSaveStatus('idle')
+            }}
+            disabled={isGenerating}
           />
 
           <div className="mt-6 flex flex-col items-center">

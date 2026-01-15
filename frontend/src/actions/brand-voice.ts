@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
-import type { BrandVoiceTraits, PersonalityTraitId, BrandVoice } from '@/types/brand-voice'
+import type { BrandVoiceTraits, PersonalityTraitId, BrandVoice, BrandVoiceAdvanced } from '@/types/brand-voice'
 
 // Get the account's brand voice
 export async function getBrandVoice(): Promise<{
@@ -51,11 +51,59 @@ export async function getBrandVoice(): Promise<{
   }
 }
 
+// Analyze website content using Firecrawl
+export async function analyzeWebsite(url: string): Promise<{
+  success: boolean
+  title?: string
+  description?: string
+  content?: string
+  error?: string
+}> {
+  console.log('[analyzeWebsite] Analyzing URL:', url)
+
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return { success: false, error: 'Not authenticated' }
+    }
+
+    const backendUrl = process.env.AGNO_API_URL || 'http://localhost:8000'
+    const fullUrl = `${backendUrl}/api/analyze-website`
+
+    const response = await fetch(fullUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('[analyzeWebsite] Backend error:', errorText)
+      return { success: false, error: `Failed to analyze website` }
+    }
+
+    const data = await response.json()
+    return {
+      success: true,
+      title: data.title,
+      description: data.description,
+      content: data.content
+    }
+  } catch (error) {
+    console.error('[analyzeWebsite] Error:', error)
+    return { success: false, error: 'Failed to analyze website' }
+  }
+}
+
 // Generate brand voice prompt from traits using AI
 export async function generateBrandVoicePrompt(
-  traits: PersonalityTraitId[]
+  traits: PersonalityTraitId[],
+  advancedData?: BrandVoiceAdvanced
 ): Promise<{ success: boolean; prompt?: string; error?: string }> {
   console.log('[generateBrandVoicePrompt] Starting with traits:', traits)
+  console.log('[generateBrandVoicePrompt] Advanced data:', advancedData ? 'present' : 'none')
 
   try {
     const supabase = await createClient()
@@ -75,12 +123,17 @@ export async function generateBrandVoicePrompt(
     console.log('[generateBrandVoicePrompt] AGNO_API_URL env:', process.env.AGNO_API_URL)
     console.log('[generateBrandVoicePrompt] Using backend URL:', backendUrl)
     console.log('[generateBrandVoicePrompt] Full URL:', fullUrl)
-    console.log('[generateBrandVoicePrompt] Request body:', JSON.stringify({ traits }))
+
+    const requestBody = {
+      traits,
+      advanced_data: advancedData
+    }
+    console.log('[generateBrandVoicePrompt] Request body:', JSON.stringify(requestBody))
 
     const response = await fetch(fullUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ traits })
+      body: JSON.stringify(requestBody)
     })
 
     console.log('[generateBrandVoicePrompt] Response status:', response.status)

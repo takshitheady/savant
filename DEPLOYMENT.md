@@ -30,6 +30,7 @@
 | `SUPABASE_DB_URL` | Yes | PostgreSQL connection string |
 | `OPENAI_API_KEY` | Yes | For embeddings |
 | `OPENROUTER_API_KEY` | Yes | For LLM calls (brand voice, chat) |
+| `FIRECRAWL_API_KEY` | No | For website analysis in advanced brand voice (get at firecrawl.dev) |
 | `CORS_ORIGINS` | Yes | Frontend URLs, comma-separated |
 | `DEFAULT_MODEL` | No | Default: gpt-4o-mini |
 
@@ -70,8 +71,10 @@ https://savant-backend-production-xxxx.up.railway.app
 - [ ] **AGNO_API_URL set in Vercel to Railway URL**
 - [ ] CORS_ORIGINS in Railway includes Vercel frontend URL
 - [ ] Test: Create a savant
-- [ ] Test: Generate brand voice
+- [ ] Test: Generate brand voice (simple mode)
+- [ ] Test: Generate brand voice (advanced mode with business info)
 - [ ] Test: Chat with savant
+- [ ] (Optional) Set FIRECRAWL_API_KEY for website analysis feature
 
 ## Troubleshooting
 
