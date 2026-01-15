@@ -57,6 +57,14 @@ export async function analyzeWebsite(url: string): Promise<{
   title?: string
   description?: string
   content?: string
+  extracted?: {
+    businessName?: string
+    businessDescription?: string
+    primaryCategory?: string
+    targetAudience?: string
+    services?: string
+    toneHints?: string
+  }
   error?: string
 }> {
   console.log('[analyzeWebsite] Analyzing URL:', url)
@@ -86,10 +94,12 @@ export async function analyzeWebsite(url: string): Promise<{
 
     const data = await response.json()
     return {
-      success: true,
+      success: data.success !== false,
       title: data.title,
       description: data.description,
-      content: data.content
+      content: data.content,
+      extracted: data.extracted,
+      error: data.error
     }
   } catch (error) {
     console.error('[analyzeWebsite] Error:', error)
