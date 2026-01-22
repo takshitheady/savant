@@ -54,10 +54,10 @@ const AVAILABLE_MODELS = [
 
 const savantSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(100),
-  description: z.string().max(500).optional(),
+  description: z.string().max(3000, 'Description must be 3000 characters or less').nullish(),
   model: z.string(),
   temperature: z.number().min(0).max(2),
-  systemPrompt: z.string().max(5000).optional(),
+  systemPrompt: z.string().max(3000, 'System prompt must be 3000 characters or less').nullish(),
   useBrandVoice: z.boolean(),
 })
 
@@ -65,10 +65,10 @@ type SavantFormValues = z.infer<typeof savantSchema>
 
 const defaultValues: SavantFormValues = {
   name: '',
-  description: '',
+  description: undefined,
   model: 'anthropic/claude-sonnet-4.5',
   temperature: 0.7,
-  systemPrompt: '',
+  systemPrompt: undefined,
   useBrandVoice: true,
 }
 

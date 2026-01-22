@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -19,6 +19,7 @@ type LoginFormData = z.infer<typeof loginSchema>
 
 export function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [resetEmailSent, setResetEmailSent] = useState(false)
@@ -31,6 +32,25 @@ export function LoginForm() {
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
   })
+
+  // Check for error parameters in URL (from auth callback)
+  useEffect(() => {
+    const error = searchParams.get('error')
+    const errorCode = searchParams.get('error_code')
+
+    if (errorCode === 'otp_expired' || error === 'access_denied') {
+      setError('Your password reset link has expired. Please request a new one.')
+    } else if (error === 'auth_failed') {
+      setError('Authentication failed. Please try again.')
+    } else if (error === 'server_error') {
+      setError('A server error occurred. Please try again later.')
+    }
+
+    // Clear URL params after reading them
+    if (error) {
+      window.history.replaceState({}, '', '/login')
+    }
+  }, [searchParams])
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true)
