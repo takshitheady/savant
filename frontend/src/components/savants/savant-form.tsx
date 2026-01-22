@@ -229,6 +229,7 @@ export function SavantForm() {
                   placeholder="A helpful assistant that..."
                   className="resize-none"
                   {...field}
+                  value={field.value ?? ''}
                 />
               </FormControl>
               <FormDescription>
@@ -346,6 +347,7 @@ export function SavantForm() {
                   placeholder="You are a helpful assistant that..."
                   className="min-h-[120px] resize-none"
                   {...field}
+                  value={field.value ?? ''}
                 />
               </FormControl>
               <FormDescription>
