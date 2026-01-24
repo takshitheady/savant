@@ -1,5 +1,13 @@
 # Phase 3: Backend Integration & RAG Implementation
 
+## Document Info
+- **Last Updated**: January 2025
+- **Status**: Implementation In Progress
+
+**Note**: This document focuses on RAG and document processing implementation. For recent auth and form validation updates (January 2025), see ARCHITECTURE.md and IMPLEMENTATION_GUIDE.md.
+
+---
+
 Based on Supabase Vector, pgvector, and Queues documentation, here's the complete implementation plan.
 
 ## Architecture Overview

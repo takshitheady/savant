@@ -1,9 +1,31 @@
 # Savant - Product Requirements Document (PRD)
 
 ## Document Info
-- **Version**: 1.0
-- **Last Updated**: December 2024
-- **Status**: Planning
+- **Version**: 1.1
+- **Last Updated**: January 2025
+- **Status**: Active Development
+
+## Recent Updates (January 2025)
+
+### ✅ Completed Features
+
+**Authentication & Security:**
+- ✅ Password Reset Flow - Complete email-based password reset with OTP verification
+- ✅ Auth Callback Security - Fixed open redirect vulnerability, added error handling
+- ✅ Error Messaging - User-friendly error messages for expired/invalid auth links
+
+**Form Validation & UX:**
+- ✅ Savant Creation Form - Fixed validation for optional fields using `.nullish()`
+- ✅ Character Limits - Increased to 3000 chars for description and system prompt
+- ✅ TypeScript Compatibility - Fixed null/undefined handling in controlled inputs
+- ✅ Next.js 16 Compatibility - Added Suspense wrappers for `useSearchParams()`
+
+**Files Modified:**
+- `frontend/src/app/api/auth/callback/route.ts` - Enhanced security and error handling
+- `frontend/src/components/auth/login-form.tsx` - Added error parameter parsing
+- `frontend/src/components/savants/savant-form.tsx` - Fixed validation schema
+- **New:** `frontend/src/app/(auth)/reset-password/page.tsx`
+- **New:** `frontend/src/components/auth/reset-password-form.tsx`
 
 ---
 
@@ -54,21 +76,37 @@
 ### MVP (Phase 1)
 
 #### 4.1 User Authentication
-| Feature | Priority | Description |
-|---------|----------|-------------|
-| Email signup/login | P0 | Basic auth via Supabase |
-| OAuth (Google) | P0 | Social login |
-| Account creation | P0 | Auto-create account on first login |
-| Team invitations | P2 | Invite team members (post-MVP) |
+| Feature | Priority | Status | Description |
+|---------|----------|--------|-------------|
+| Email signup/login | P0 | ✅ Complete | Basic auth via Supabase |
+| OAuth (Google) | P0 | ✅ Complete | Social login |
+| Account creation | P0 | ✅ Complete | Auto-create account on first login |
+| Password reset | P0 | ✅ Complete (Jan 2025) | Email-based password reset with OTP |
+| Team invitations | P2 | 🔜 Planned | Invite team members (post-MVP) |
+
+**Password Reset Flow Details:**
+- User clicks "Forgot Password" on login page
+- Email sent with OTP link (24-hour expiration)
+- Auth callback validates code and redirects to reset page
+- Password validation: min 8 characters, confirmation required
+- Error handling for expired/invalid links
+- Security: prevents open redirect attacks
 
 #### 4.2 Savant Management
-| Feature | Priority | Description |
-|---------|----------|-------------|
-| Create Savant | P0 | Name, description, model selection |
-| Update Savant | P0 | Edit settings, prompt, model config |
-| Delete Savant | P0 | Soft delete with data cleanup |
-| List Savants | P0 | Dashboard view of all Savants |
-| Savant Settings | P0 | System prompt, temperature, max tokens |
+| Feature | Priority | Status | Description |
+|---------|----------|--------|-------------|
+| Create Savant | P0 | ✅ Complete | Name, description (3000 chars), model selection |
+| System Prompt | P0 | ✅ Complete | Up to 3000 characters, optional field |
+| Update Savant | P0 | ✅ Complete | Edit settings, prompt, model config |
+| Delete Savant | P0 | ✅ Complete | Soft delete with data cleanup |
+| List Savants | P0 | ✅ Complete | Dashboard view of all Savants |
+| Savant Settings | P0 | ✅ Complete | System prompt, temperature, max tokens |
+
+**Form Validation Improvements (Jan 2025):**
+- Fixed `.nullish()` validation for optional fields
+- Character limits: description (3000), system_prompt (3000)
+- Proper handling of null/undefined values in forms
+- TypeScript-safe controlled inputs
 
 #### 4.3 Document Management
 | Feature | Priority | Description |

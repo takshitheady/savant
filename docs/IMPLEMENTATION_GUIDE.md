@@ -1,8 +1,8 @@
 # Savant - Implementation Guide
 
 ## Document Info
-- **Version**: 1.0
-- **Last Updated**: December 2024
+- **Version**: 1.1
+- **Last Updated**: January 2025
 
 ---
 
@@ -491,6 +491,266 @@ export const config = {
   matcher: ['/dashboard/:path*', '/login', '/signup'],
 }
 ```
+
+### 3.3 Auth Callback Route (Password Reset & OAuth)
+
+**frontend/src/app/api/auth/callback/route.ts**
+```typescript
+import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
+
+export async function GET(request: Request) {
+  const requestUrl = new URL(request.url)
+  const code = requestUrl.searchParams.get('code')
+  const next = requestUrl.searchParams.get('next')
+  const error = requestUrl.searchParams.get('error')
+  const errorCode = requestUrl.searchParams.get('error_code')
+  const errorDescription = requestUrl.searchParams.get('error_description')
+  const origin = requestUrl.origin
+
+  // Handle auth errors (e.g., expired OTP)
+  if (error) {
+    console.error('Auth callback error:', { error, errorCode, errorDescription })
+    const errorParams = new URLSearchParams()
+    errorParams.set('error', error)
+    if (errorCode) errorParams.set('error_code', errorCode)
+    return NextResponse.redirect(`${origin}/login?${errorParams.toString()}`)
+  }
+
+  // Exchange code for session
+  if (code) {
+    try {
+      const supabase = await createClient()
+      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+
+      if (exchangeError) {
+        console.error('Failed to exchange code for session:', exchangeError)
+        return NextResponse.redirect(`${origin}/login?error=auth_failed`)
+      }
+    } catch (err) {
+      console.error('Unexpected error during code exchange:', err)
+      return NextResponse.redirect(`${origin}/login?error=server_error`)
+    }
+  }
+
+  // Validate and redirect to next parameter or fallback to dashboard
+  // Only allow relative paths starting with / to prevent open redirect attacks
+  const redirectPath = next && next.startsWith('/') ? next : '/dashboard'
+  return NextResponse.redirect(`${origin}${redirectPath}`)
+}
+```
+
+**Key Features:**
+- Handles OAuth callbacks and password reset flows
+- Validates `next` parameter to prevent open redirect vulnerabilities
+- Error handling with user-friendly error codes
+- Redirects to appropriate pages based on flow
+
+### 3.4 Password Reset Implementation
+
+**frontend/src/components/auth/reset-password-form.tsx**
+```typescript
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as z from 'zod'
+import { createClient } from '@/lib/supabase/client'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+
+const resetPasswordSchema = z.object({
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ['confirmPassword'],
+})
+
+type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>
+
+export function ResetPasswordForm() {
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<ResetPasswordFormData>({
+    resolver: zodResolver(resetPasswordSchema),
+  })
+
+  const onSubmit = async (data: ResetPasswordFormData) => {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.auth.updateUser({
+        password: data.password,
+      })
+
+      if (error) throw error
+
+      setSuccess(true)
+
+      // Redirect to login after 2 seconds
+      setTimeout(() => {
+        router.push('/login')
+      }, 2000)
+    } catch (err: any) {
+      setError(err.message || 'Failed to reset password')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  if (success) {
+    return (
+      <div className="bg-green-50 dark:bg-green-950 text-green-900 dark:text-green-100 rounded-md p-4">
+        <h3 className="font-semibold mb-2">Password reset successful!</h3>
+        <p className="text-sm">Redirecting to login...</p>
+      </div>
+    )
+  }
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      {error && (
+        <div className="bg-destructive/15 text-destructive text-sm rounded-md p-3">
+          {error}
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <Label htmlFor="password">New Password</Label>
+        <Input
+          id="password"
+          type="password"
+          {...register('password')}
+          disabled={isLoading}
+        />
+        {errors.password && (
+          <p className="text-sm text-destructive">{errors.password.message}</p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="confirmPassword">Confirm Password</Label>
+        <Input
+          id="confirmPassword"
+          type="password"
+          {...register('confirmPassword')}
+          disabled={isLoading}
+        />
+        {errors.confirmPassword && (
+          <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>
+        )}
+      </div>
+
+      <Button type="submit" className="w-full" disabled={isLoading}>
+        {isLoading ? 'Resetting password...' : 'Reset Password'}
+      </Button>
+    </form>
+  )
+}
+```
+
+**frontend/src/app/(auth)/reset-password/page.tsx**
+```typescript
+import { Metadata } from 'next'
+import Link from 'next/link'
+import { Suspense } from 'react'
+import { ResetPasswordForm } from '@/components/auth/reset-password-form'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+
+export const metadata: Metadata = {
+  title: 'Reset Password - Savant',
+  description: 'Reset your Savant account password',
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Card>
+      <CardHeader className="space-y-1">
+        <CardTitle className="text-2xl font-bold">Reset your password</CardTitle>
+        <CardDescription>
+          Enter your new password below
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Suspense fallback={<div>Loading...</div>}>
+          <ResetPasswordForm />
+        </Suspense>
+        <div className="mt-4 text-center text-sm text-muted-foreground">
+          Remember your password?{' '}
+          <Link href="/login" className="text-primary hover:underline font-medium">
+            Back to login
+          </Link>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+```
+
+### 3.5 Form Validation Best Practices
+
+**Using `.nullish()` for Optional Fields**
+
+When working with react-hook-form and optional fields, use `.nullish()` instead of `.optional()`:
+
+```typescript
+// ❌ BAD: .optional() only accepts undefined
+const schema = z.object({
+  description: z.string().max(500).optional(),
+})
+
+// ✅ GOOD: .nullish() accepts null, undefined, and string
+const schema = z.object({
+  description: z.string().max(3000).nullish(),
+})
+```
+
+**Default Values**
+
+```typescript
+// ❌ BAD: Empty string causes type issues
+const defaultValues = {
+  description: '',
+  systemPrompt: '',
+}
+
+// ✅ GOOD: undefined works with .nullish()
+const defaultValues = {
+  description: undefined,
+  systemPrompt: undefined,
+}
+```
+
+**Controlled Inputs**
+
+Convert null/undefined to empty string for controlled inputs:
+
+```typescript
+<Textarea
+  {...field}
+  value={field.value ?? ''}  // Prevents "null" as value
+/>
+```
+
+**Character Limits**
+
+Current validation limits:
+- `name`: 2-100 characters
+- `description`: max 3000 characters (frontend), unlimited (database TEXT)
+- `system_prompt`: max 3000 characters (frontend), unlimited (database TEXT)
 
 ---
 

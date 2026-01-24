@@ -1,9 +1,9 @@
 # Savant - Technical Architecture Document
 
 ## Document Info
-- **Version**: 1.0
-- **Last Updated**: December 2024
-- **Status**: Planning
+- **Version**: 1.1
+- **Last Updated**: January 2025
+- **Status**: Active Development
 
 ---
 
@@ -136,20 +136,30 @@ CREATE POLICY "Users see own account data"
 ```
 src/
 ├── app/                      # App Router pages
-│   ├── (auth)/               # Login, signup
+│   ├── (auth)/               # Auth routes (public)
+│   │   ├── login/            # Login page (with error handling)
+│   │   ├── signup/           # Signup page
+│   │   └── reset-password/   # Password reset page (NEW - Jan 2025)
 │   ├── (dashboard)/          # Protected routes
 │   │   ├── savants/          # Savant management
 │   │   ├── prompts/          # Account prompts
 │   │   └── settings/         # Account settings
 │   └── api/                  # API routes (proxy to AgentOS)
+│       ├── auth/
+│       │   └── callback/     # Auth callback (UPDATED - handles 'next' param)
 │       ├── savants/[id]/chat/  # Chat proxy
 │       └── webhooks/         # Stripe, Autumn
 │
 ├── components/               # React components
 │   ├── ui/                   # shadcn/ui
+│   ├── auth/                 # Auth components (NEW section)
+│   │   ├── login-form.tsx    # Login form (UPDATED - error handling)
+│   │   ├── signup-form.tsx   # Signup form
+│   │   └── reset-password-form.tsx  # Password reset form (NEW)
 │   ├── chat/                 # Chat interface
 │   ├── documents/            # Upload, status
 │   └── savants/              # CRUD components
+│       └── savant-form.tsx   # Create/edit (UPDATED - .nullish() validation)
 │
 ├── lib/                      # Utilities
 │   ├── supabase/             # Client setup
@@ -292,15 +302,15 @@ Returns JSON → Frontend auto-fills form fields
 
 ### 5.2 Key Tables
 
-| Table | Purpose | Key Fields |
-|-------|---------|------------|
-| `accounts` | Multi-tenant root | `id`, `owner_id`, `default_system_prompt` |
-| `account_prompts` | Account-level prompts & brand voice | `id`, `account_id`, `is_brand_voice`, `brand_voice_traits` (JSONB) |
-| `savants` | AI bots | `id`, `account_id`, `system_prompt`, `model_config`, `rag_config` |
-| `documents` | Uploaded files | `id`, `savant_id`, `file_path`, `status` |
-| `document_chunks` | Vector embeddings | `id`, `savant_id`, `content`, `embedding` |
-| `conversations` | Chat sessions | `id`, `savant_id`, `session_id` |
-| `messages` | Chat messages | `id`, `conversation_id`, `role`, `content` |
+| Table | Purpose | Key Fields | Notes |
+|-------|---------|------------|-------|
+| `accounts` | Multi-tenant root | `id`, `owner_id`, `default_system_prompt` | |
+| `account_prompts` | Account-level prompts & brand voice | `id`, `account_id`, `is_brand_voice`, `brand_voice_traits` (JSONB) | |
+| `savants` | AI bots | `id`, `account_id`, `description` (TEXT), `system_prompt` (TEXT), `model_config`, `rag_config` | description & system_prompt: unlimited (TEXT type), frontend validates 3000 chars |
+| `documents` | Uploaded files | `id`, `savant_id`, `file_path`, `status` | |
+| `document_chunks` | Vector embeddings | `id`, `savant_id`, `content`, `embedding` | |
+| `conversations` | Chat sessions | `id`, `savant_id`, `session_id` | |
+| `messages` | Chat messages | `id`, `conversation_id`, `role`, `content` | |
 
 **Brand Voice Storage:**
 
@@ -466,7 +476,55 @@ $$ LANGUAGE sql;
               └─────────┘      └──────────────┘
 ```
 
-### 7.2 Security Layers
+### 7.2 Password Reset Flow (Implemented Jan 2025)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    PASSWORD RESET FLOW                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  1. User clicks "Forgot Password" on /login                     │
+│                    ↓                                            │
+│  2. Enter email → Supabase sends OTP email                      │
+│                    ↓                                            │
+│  3. User clicks link in email                                   │
+│     URL: /api/auth/callback?code=xxx&next=/reset-password       │
+│                    ↓                                            │
+│  4. Auth Callback Route (/api/auth/callback/route.ts)           │
+│     • Exchanges code for session                                │
+│     • Validates 'next' parameter (prevents open redirect)       │
+│     • Handles errors (expired OTP, invalid code)                │
+│     • Redirects to next=/reset-password with session            │
+│                    ↓                                            │
+│  5. Reset Password Page (/app/(auth)/reset-password/page.tsx)   │
+│     • Wrapped in Suspense (Next.js 16 requirement)              │
+│     • Displays ResetPasswordForm component                      │
+│                    ↓                                            │
+│  6. User enters new password + confirmation                     │
+│     • Min 8 characters validation                               │
+│     • Password confirmation must match                          │
+│                    ↓                                            │
+│  7. Submit → supabase.auth.updateUser({ password })             │
+│                    ↓                                            │
+│  8. Success → Auto-redirect to /login after 2 seconds           │
+│                    ↓                                            │
+│  9. User logs in with new password                              │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Error Handling:**
+- **Expired OTP**: Redirects to `/login?error=access_denied&error_code=otp_expired`
+- **Invalid Code**: Redirects to `/login?error=auth_failed`
+- **Server Error**: Redirects to `/login?error=server_error`
+- Login form parses error params and displays user-friendly messages
+
+**Security:**
+- `next` parameter validated (must start with `/` to prevent open redirect attacks)
+- Password min length: 8 characters
+- Session must be valid to access reset password page
+
+### 7.3 Security Layers
 
 | Layer | Protection |
 |-------|------------|
@@ -475,8 +533,52 @@ $$ LANGUAGE sql;
 | **Next.js Middleware** | Route protection, session validation |
 | **API Rate Limiting** | Per-IP and per-user limits |
 | **CORS** | Restrict origins |
+| **Open Redirect Prevention** | Auth callback validates `next` param starts with `/` |
+| **Password Validation** | Minimum 8 characters, confirmation matching |
+| **OTP Expiration** | Email links expire after 24 hours (configurable) |
 
-### 7.3 AgentOS JWT Scopes
+### 7.4 Form Validation & Input Handling
+
+**Zod Schema Configuration:**
+
+Forms use Zod for validation with specific handling for optional fields:
+
+```typescript
+// Savant creation form validation
+const savantSchema = z.object({
+  name: z.string().min(2).max(100),
+  description: z.string().max(3000).nullish(),  // Allows null/undefined/string
+  model: z.string(),
+  temperature: z.number().min(0).max(2),
+  systemPrompt: z.string().max(3000).nullish(), // Increased from 5000
+  useBrandVoice: z.boolean(),
+})
+```
+
+**Key Changes (Jan 2025):**
+- Changed from `.optional()` to `.nullish()` for better react-hook-form compatibility
+- `.nullish()` accepts `null`, `undefined`, AND valid strings
+- Prevents TypeScript errors with controlled inputs
+- Character limits: description (3000), system_prompt (3000)
+
+**React Hook Form Integration:**
+```typescript
+// Convert null/undefined to empty string for controlled inputs
+<Textarea
+  {...field}
+  value={field.value ?? ''}  // Prevents null value errors
+/>
+```
+
+**Default Values:**
+```typescript
+const defaultValues = {
+  description: undefined,      // Not '' (empty string)
+  systemPrompt: undefined,     // Not '' (empty string)
+}
+```
+
+### 7.5 AgentOS JWT Scopes
 
 ```python
 # Required scopes for Savant operations

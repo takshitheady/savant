@@ -2,8 +2,10 @@
 
 ## Document Info
 - **Version**: 1.0
-- **Last Updated**: January 2026
+- **Last Updated**: January 2025
 - **Status**: Production
+
+**Note**: This document focuses on the Brand Voice feature. For authentication and form validation updates (January 2025), see ARCHITECTURE.md and IMPLEMENTATION_GUIDE.md.
 
 ---
 
