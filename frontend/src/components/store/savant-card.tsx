@@ -1,12 +1,17 @@
 'use client'
 
 import Link from 'next/link'
-import { Star, Download, Bot } from 'lucide-react'
+import { Star, Download, Bot, ArrowUpCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { StoreListingSearchResult } from '@/types/database'
+import { VersionBadge } from '@/components/ui/version-badge'
 
 interface SavantCardProps {
-  listing: StoreListingSearchResult
+  listing: StoreListingSearchResult & {
+    template_version?: number
+    user_current_version?: number
+    has_update?: boolean
+  }
   className?: string
 }
 
@@ -24,10 +29,25 @@ export function SavantCard({ listing, className }: SavantCardProps) {
         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
           <Bot className="h-6 w-6" />
         </div>
-        <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-          {listing.category_name}
-        </span>
+        <div className="flex flex-col items-end gap-1">
+          <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+            {listing.category_name}
+          </span>
+          {listing.template_version && (
+            <VersionBadge version={listing.template_version} />
+          )}
+        </div>
       </div>
+
+      {/* Update Available Badge */}
+      {listing.has_update && listing.template_version && (
+        <div className="mt-3 flex items-center gap-2 rounded-lg bg-orange-500/10 px-3 py-2 text-sm">
+          <ArrowUpCircle className="h-4 w-4 text-orange-600" />
+          <span className="font-medium text-orange-600">
+            New version available: v{listing.template_version}
+          </span>
+        </div>
+      )}
 
       {/* Name and Description */}
       <div className="mt-4 flex-1">

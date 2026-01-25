@@ -22,6 +22,10 @@ export default async function SavantsPage() {
     .eq('user_id', user!.id)
     .single()
 
+  // Check if user is platform admin
+  const { data: isAdmin } = await adminSupabase
+    .rpc('is_platform_admin', { check_user_id: user!.id })
+
   // Get all savants for this account
   const { data: savants } = await adminSupabase
     .from('savants')
@@ -62,15 +66,20 @@ export default async function SavantsPage() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Savants</h2>
           <p className="text-muted-foreground">
-            Manage your AI assistants and their configurations
+            {isAdmin
+              ? 'Manage your AI assistants and their configurations'
+              : 'Manage your imported AI assistants. Browse the Store to import more.'
+            }
           </p>
         </div>
-        <Link href="/savants/new">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            New Savant
-          </Button>
-        </Link>
+        {isAdmin && (
+          <Link href="/savants/new">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              New Savant
+            </Button>
+          </Link>
+        )}
       </div>
 
       {savantsWithCounts && savantsWithCounts.length > 0 ? (
@@ -126,16 +135,28 @@ export default async function SavantsPage() {
             </div>
             <CardTitle>No Savants yet</CardTitle>
             <CardDescription>
-              Get started by creating your first AI assistant
+              {isAdmin
+                ? 'Get started by creating your first AI assistant'
+                : 'Import your first Savant from the Official Store'
+              }
             </CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center pb-6">
-            <Link href="/savants/new">
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Create Your First Savant
-              </Button>
-            </Link>
+            {isAdmin ? (
+              <Link href="/savants/new">
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Your First Savant
+                </Button>
+              </Link>
+            ) : (
+              <Link href="/store">
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Browse Official Store
+                </Button>
+              </Link>
+            )}
           </CardContent>
         </Card>
       )}

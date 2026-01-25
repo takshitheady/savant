@@ -11,6 +11,8 @@ import { SavantPrompts } from '@/components/savants/savant-prompts'
 import { SavantDocuments } from '@/components/savants/savant-documents'
 import { SavantPublish } from '@/components/savants/savant-publish'
 import { ImportedBadge } from '@/components/store/imported-badge'
+import { UpgradeNotification } from '@/components/savants/upgrade-notification'
+import { AdminVersionPublisher } from '@/components/savants/admin-version-publisher'
 
 interface SavantPageProps {
   params: Promise<{
@@ -57,11 +59,16 @@ export default async function SavantPage({ params }: SavantPageProps) {
     .from('savants')
     .select(`
       *,
-      documents:documents(id, name, file_size, created_at)
+      documents:documents(id, name, file_size, created_at, is_visible_to_user)
     `)
     .eq('id', id)
     .eq('account_id', accountMember.account_id)
     .single()
+
+  // Filter out admin documents in code (not in query, to avoid inner join issues)
+  if (savant?.documents) {
+    savant.documents = savant.documents.filter((doc: any) => doc.is_visible_to_user === true)
+  }
 
   console.log('[SavantPage] Savant:', savant?.name || 'NULL', 'Error:', error?.message || 'none')
 
@@ -75,6 +82,40 @@ export default async function SavantPage({ params }: SavantPageProps) {
     .from('messages')
     .select('*', { count: 'exact', head: true })
     .eq('savant_id', id)
+
+  // Check for updates if this is a template instance
+  let updateStatus: {
+    current_version: number
+    latest_version: number
+    update_available: boolean
+    template_name: string
+  } | null = null
+  let latestVersionChangelog: string | null = null
+
+  if (savant.cloned_from_id && !savant.is_template) {
+    const { data: updateData } = await adminSupabase
+      .from('savant_update_status')
+      .select('*')
+      .eq('instance_id', id)
+      .eq('account_id', accountMember.account_id)
+      .single()
+
+    if (updateData && updateData.update_available) {
+      updateStatus = updateData
+
+      // Get changelog for the latest version
+      const { data: versionData } = await adminSupabase
+        .from('savant_versions')
+        .select('changelog')
+        .eq('template_id', savant.cloned_from_id)
+        .eq('version', updateData.latest_version)
+        .single()
+
+      if (versionData) {
+        latestVersionChangelog = versionData.changelog
+      }
+    }
+  }
 
   const documentCount = savant.documents?.length || 0
   const modelConfig = savant.model_config || {}
@@ -106,6 +147,18 @@ export default async function SavantPage({ params }: SavantPageProps) {
           </Button>
         </Link>
       </div>
+
+      {/* Update Notification */}
+      {updateStatus && (
+        <UpgradeNotification
+          instanceId={savant.id}
+          templateId={savant.cloned_from_id!}
+          currentVersion={updateStatus.current_version}
+          latestVersion={updateStatus.latest_version}
+          templateName={updateStatus.template_name}
+          changelog={latestVersionChangelog || undefined}
+        />
+      )}
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-3">
@@ -154,19 +207,26 @@ export default async function SavantPage({ params }: SavantPageProps) {
         <TabsContent value="overview" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>System Prompt</CardTitle>
+              <CardTitle>{savant.cloned_from_id && !savant.is_template ? 'Your Custom Instructions' : 'System Prompt'}</CardTitle>
               <CardDescription>
-                The core instructions that define your Savant's behavior
+                {savant.cloned_from_id && !savant.is_template
+                  ? 'Your custom instructions (template includes hidden base instructions)'
+                  : 'The core instructions that define your Savant\'s behavior'
+                }
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {savant.system_prompt ? (
+              {savant.user_system_prompt ? (
                 <div className="rounded-lg bg-muted p-4">
-                  <p className="whitespace-pre-wrap text-sm">{savant.system_prompt}</p>
+                  <p className="whitespace-pre-wrap text-sm">{savant.user_system_prompt}</p>
+                </div>
+              ) : savant.base_system_prompt ? (
+                <div className="text-center text-sm text-muted-foreground">
+                  No custom instructions set. This savant uses template base instructions.
                 </div>
               ) : (
                 <div className="text-center text-sm text-muted-foreground">
-                  No system prompt set. Add one in the Settings tab.
+                  No system prompt set. Add one in the Prompts tab.
                 </div>
               )}
             </CardContent>
@@ -198,6 +258,7 @@ export default async function SavantPage({ params }: SavantPageProps) {
             savantId={savant.id}
             accountId={accountMember!.account_id}
             initialDocuments={savant.documents || []}
+            isTemplateInstance={!!(savant.cloned_from_id && !savant.is_template)}
           />
         </TabsContent>
 
@@ -205,8 +266,15 @@ export default async function SavantPage({ params }: SavantPageProps) {
           <SavantSettings savant={savant} />
         </TabsContent>
 
-        <TabsContent value="publish">
+        <TabsContent value="publish" className="space-y-4">
           <SavantPublish savant={savant} />
+          {savant.is_template && (
+            <AdminVersionPublisher
+              savantId={savant.id}
+              currentVersion={savant.version || 1}
+              isTemplate={savant.is_template}
+            />
+          )}
         </TabsContent>
       </Tabs>
     </div>

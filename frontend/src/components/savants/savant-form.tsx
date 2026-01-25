@@ -184,8 +184,8 @@ export function SavantForm() {
         throw error
       }
 
-      // Track milestone
-      await completeMilestone('firstSavantCreated')
+      // Track milestone (for admin users only - regular users import from store)
+      // await completeMilestone('firstSavantImported')
 
       // Redirect to the savant's page
       router.push(`/savants/${savant.id}`)

@@ -80,8 +80,19 @@ class SavantAgentFactory:
 
         savant_data = savant_result.data
 
-        # Get system prompt directly from savant
-        savant_prompt = savant_data.get('system_prompt')
+        # Get system prompts - combine base (hidden from user) + user (customizable)
+        base_prompt = savant_data.get('base_system_prompt')
+        user_prompt = savant_data.get('user_system_prompt')
+
+        # Compose final savant prompt: base takes priority, user customizations append
+        savant_prompt_parts = []
+        if base_prompt:
+            savant_prompt_parts.append(base_prompt)
+        if user_prompt:
+            savant_prompt_parts.append("--- User Customizations ---")
+            savant_prompt_parts.append(user_prompt)
+
+        savant_prompt = "\n\n".join(savant_prompt_parts) if savant_prompt_parts else None
 
         # Extract model config to check brand voice preference
         model_config = savant_data.get('model_config', {})

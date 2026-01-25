@@ -8,9 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { createClient } from '@/lib/supabase/client'
 import { getBrandVoice } from '@/actions/brand-voice'
-import { Loader2, Check, Mic2, ExternalLink, CheckCircle2, XCircle } from 'lucide-react'
+import { Loader2, Check, Mic2, ExternalLink, CheckCircle2, XCircle, Info } from 'lucide-react'
 import type { BrandVoice } from '@/types/brand-voice'
 
 interface SavantPromptsProps {
@@ -28,23 +29,33 @@ export function SavantPrompts({ savantId, accountId, initialUseBrandVoice }: Sav
   const [useBrandVoice, setUseBrandVoice] = useState(initialUseBrandVoice ?? true)
   const [isLoadingBrandVoice, setIsLoadingBrandVoice] = useState(true)
   const [isTogglingBrandVoice, setIsTogglingBrandVoice] = useState(false)
+  const [isTemplateInstance, setIsTemplateInstance] = useState(false)
+  const [hasBasePrompt, setHasBasePrompt] = useState(false)
 
   // Load current system prompt and brand voice when component mounts
   useEffect(() => {
     async function loadData() {
       const supabase = createClient()
 
-      // Load savant's system prompt and model_config
+      // Load savant's prompts and metadata
+      // SECURITY: Do NOT fetch base_system_prompt - it should remain hidden from frontend
       const { data: savantData } = await supabase
         .from('savants')
-        .select('system_prompt, model_config')
+        .select('user_system_prompt, model_config, cloned_from_id, is_template')
         .eq('id', savantId)
         .single()
 
-      if (savantData?.system_prompt) {
-        setCurrentPrompt(savantData.system_prompt)
-        setNewPrompt(savantData.system_prompt)
+      // Only show user_system_prompt (base_system_prompt is hidden)
+      if (savantData?.user_system_prompt) {
+        setCurrentPrompt(savantData.user_system_prompt)
+        setNewPrompt(savantData.user_system_prompt)
       }
+
+      // Check if this is a template instance
+      const isInstance = !!(savantData?.cloned_from_id && !savantData?.is_template)
+      setIsTemplateInstance(isInstance)
+      // If it's an instance, assume it has base prompt (all instances do)
+      setHasBasePrompt(isInstance)
 
       // Get use_brand_voice from model_config
       const modelConfig = savantData?.model_config as { use_brand_voice?: boolean } | null
@@ -64,17 +75,21 @@ export function SavantPrompts({ savantId, accountId, initialUseBrandVoice }: Sav
   }, [savantId])
 
   async function handleCreatePrompt() {
-    if (!newPrompt.trim()) return
+    if (!newPrompt.trim() && isTemplateInstance) {
+      // Allow clearing user prompt for template instances
+    } else if (!newPrompt.trim()) {
+      return
+    }
 
     try {
       setIsLoading(true)
 
       const supabase = createClient()
 
-      // Update the system_prompt column on the savants table
+      // Update the user_system_prompt column (user customizations)
       const { error } = await supabase
         .from('savants')
-        .update({ system_prompt: newPrompt })
+        .update({ user_system_prompt: newPrompt || null })
         .eq('id', savantId)
         .eq('account_id', accountId)
 
@@ -136,37 +151,54 @@ export function SavantPrompts({ savantId, accountId, initialUseBrandVoice }: Sav
 
   return (
     <div className="space-y-6">
+      {/* Template Instance Info */}
+      {isTemplateInstance && hasBasePrompt && (
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            This savant is based on an admin template with pre-configured instructions.
+            You can add your own custom instructions below to extend its capabilities.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* System Prompt Card */}
       <Card>
         <CardHeader>
-          <CardTitle>System Prompt</CardTitle>
+          <CardTitle>{isTemplateInstance ? 'Your Custom Instructions (Optional)' : 'System Prompt'}</CardTitle>
           <CardDescription>
-            Define the personality, behavior, and capabilities of your Savant
+            {isTemplateInstance
+              ? 'Add your own instructions to customize this savant for your specific needs'
+              : 'Define the personality, behavior, and capabilities of your Savant'
+            }
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Textarea
-            placeholder="You are a helpful assistant that specializes in..."
+            placeholder={isTemplateInstance
+              ? "Add custom instructions here to extend the savant's base capabilities..."
+              : "You are a helpful assistant that specializes in..."
+            }
             className="min-h-[200px] resize-none"
             value={newPrompt}
             onChange={(e) => setNewPrompt(e.target.value)}
           />
           {currentPrompt && (
             <div className="text-xs text-muted-foreground">
-              Current prompt is set. Edit above to update it.
+              {isTemplateInstance ? 'Your custom instructions are set. Edit above to update them.' : 'Current prompt is set. Edit above to update it.'}
             </div>
           )}
           <div className="flex justify-end">
             <Button
               onClick={handleCreatePrompt}
-              disabled={isLoading || !newPrompt.trim() || newPrompt === currentPrompt}
+              disabled={isLoading || newPrompt === currentPrompt}
             >
               {isLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <Check className="mr-2 h-4 w-4" />
               )}
-              {currentPrompt ? 'Update System Prompt' : 'Save System Prompt'}
+              {currentPrompt ? 'Update Instructions' : 'Save Instructions'}
             </Button>
           </div>
         </CardContent>

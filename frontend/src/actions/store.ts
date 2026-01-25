@@ -122,10 +122,11 @@ export async function getStoreListing(savantId: string) {
         id,
         name,
         description,
-        system_prompt,
         model_config,
         account_id,
         is_public,
+        is_template,
+        version,
         accounts!savants_account_id_fkey!inner (
           id,
           name
@@ -147,6 +148,7 @@ export async function getStoreListing(savantId: string) {
     return null
   }
 
+  // Don't expose base_system_prompt or user_system_prompt in store listings
   return data
 }
 
@@ -174,12 +176,11 @@ export async function importSavant(
     return { success: false, error: 'No account found' }
   }
 
-  // Clone the savant using the database function
-  const { data, error } = await supabase.rpc('clone_savant_from_store', {
-    p_source_savant_id: sourceSavantId,
+  // Clone the template savant using the new function (hides base prompts & admin docs)
+  const { data, error } = await supabase.rpc('clone_template_savant', {
+    p_template_id: sourceSavantId,
     p_target_account_id: accountMember.account_id,
-    p_target_user_id: user.id,
-    p_new_name: newName || null,
+    p_custom_name: newName || null,
   })
 
   if (error) {
@@ -190,6 +191,7 @@ export async function importSavant(
   revalidatePath('/savants')
   revalidatePath('/store')
 
+  // Note: firstSavantImported milestone should be tracked in the client component after successful import
   return { success: true, savantId: data }
 }
 
@@ -209,10 +211,18 @@ export async function publishSavantToStore(
     return { success: false, error: 'Not authenticated' }
   }
 
+  // Check if user is platform admin
+  const { data: isAdmin, error: adminCheckError } = await supabase
+    .rpc('is_platform_admin', { check_user_id: user.id })
+
+  if (adminCheckError || !isAdmin) {
+    return { success: false, error: 'Only platform admins can publish savants to the store' }
+  }
+
   // Verify user owns this savant
   const { data: savant, error: savantError } = await supabase
     .from('savants')
-    .select('id, account_id')
+    .select('id, account_id, user_system_prompt, base_system_prompt')
     .eq('id', savantId)
     .single()
 
@@ -232,14 +242,37 @@ export async function publishSavantToStore(
     return { success: false, error: 'Not authorized' }
   }
 
-  // Update savant to public
+  // Convert savant to template
+  // Move user_system_prompt to base_system_prompt (hide from future importers)
+  const basePrompt = savant.base_system_prompt || savant.user_system_prompt
+
   const { error: updateError } = await supabase
     .from('savants')
-    .update({ is_public: true })
+    .update({
+      is_public: true,
+      is_template: true,
+      base_system_prompt: basePrompt,
+      user_system_prompt: null,
+      version: 1,
+    })
     .eq('id', savantId)
 
   if (updateError) {
     return { success: false, error: updateError.message }
+  }
+
+  // Mark all documents as admin documents (hidden from importers)
+  const { error: docsError } = await supabase
+    .from('documents')
+    .update({
+      is_admin_document: true,
+      is_visible_to_user: false,
+    })
+    .eq('savant_id', savantId)
+
+  if (docsError) {
+    console.error('Error marking documents as admin:', docsError)
+    // Don't fail the whole operation if this fails
   }
 
   // Create or update store listing
@@ -411,4 +444,117 @@ export async function submitReview(
   revalidatePath('/store')
 
   return { success: true }
+}
+
+// Upgrade a savant instance to the latest template version
+export async function upgradeSavantInstance(
+  instanceId: string
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient()
+
+  // Get current user
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  if (userError || !user) {
+    return { success: false, error: 'Not authenticated' }
+  }
+
+  // Get user's account
+  const { data: accountMember, error: accountError } = await supabase
+    .from('account_members')
+    .select('account_id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (accountError || !accountMember) {
+    return { success: false, error: 'No account found' }
+  }
+
+  // Verify user owns this savant instance
+  const { data: savant, error: savantError } = await supabase
+    .from('savants')
+    .select('id, account_id, cloned_from_id')
+    .eq('id', instanceId)
+    .single()
+
+  if (savantError || !savant) {
+    return { success: false, error: 'Savant not found' }
+  }
+
+  if (savant.account_id !== accountMember.account_id) {
+    return { success: false, error: 'Not authorized' }
+  }
+
+  if (!savant.cloned_from_id) {
+    return { success: false, error: 'This savant is not a template instance' }
+  }
+
+  // Call the upgrade function
+  const { error: upgradeError } = await supabase.rpc('upgrade_savant_instance', {
+    p_instance_id: instanceId,
+  })
+
+  if (upgradeError) {
+    console.error('Error upgrading savant instance:', upgradeError)
+    return { success: false, error: upgradeError.message }
+  }
+
+  revalidatePath(`/savants/${instanceId}`)
+  revalidatePath('/savants')
+  revalidatePath('/store')
+
+  return { success: true }
+}
+
+// Publish a new version of a template
+export async function publishTemplateVersion(
+  templateId: string,
+  changelog: string
+): Promise<{ success: boolean; error?: string; newVersion?: number }> {
+  const supabase = await createClient()
+
+  // Get current user
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  if (userError || !user) {
+    return { success: false, error: 'Not authenticated' }
+  }
+
+  // Check if user is platform admin
+  const { data: isAdmin, error: adminCheckError } = await supabase
+    .rpc('is_platform_admin', { check_user_id: user.id })
+
+  if (adminCheckError || !isAdmin) {
+    return { success: false, error: 'Only platform admins can publish template versions' }
+  }
+
+  // Verify this is a template
+  const { data: savant, error: savantError } = await supabase
+    .from('savants')
+    .select('id, is_template, version')
+    .eq('id', templateId)
+    .single()
+
+  if (savantError || !savant) {
+    return { success: false, error: 'Template not found' }
+  }
+
+  if (!savant.is_template) {
+    return { success: false, error: 'This savant is not a template' }
+  }
+
+  // Call the publish_template_version function
+  const { data, error: publishError } = await supabase.rpc('publish_template_version', {
+    p_template_id: templateId,
+    p_changelog: changelog,
+  })
+
+  if (publishError) {
+    console.error('Error publishing template version:', publishError)
+    return { success: false, error: publishError.message }
+  }
+
+  revalidatePath(`/savants/${templateId}`)
+  revalidatePath('/savants')
+  revalidatePath('/store')
+
+  return { success: true, newVersion: data }
 }

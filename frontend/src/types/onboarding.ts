@@ -1,7 +1,7 @@
 // Onboarding Types
 
 export interface OnboardingMilestones {
-  firstSavantCreated: boolean
+  firstSavantImported: boolean
   firstDocumentUploaded: boolean
   firstMessageSent: boolean
   storeExplored: boolean
@@ -31,7 +31,7 @@ export const DEFAULT_ONBOARDING_STATE: OnboardingState = {
   guidedTourCompleted: false,
   guidedTourStep: null,
   milestones: {
-    firstSavantCreated: false,
+    firstSavantImported: false,
     firstDocumentUploaded: false,
     firstMessageSent: false,
     storeExplored: false,

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Download, Loader2, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { importSavant } from '@/actions/store'
+import { useOnboarding } from '@/components/onboarding'
 
 interface ImportButtonProps {
   savantId: string
@@ -19,6 +20,7 @@ export function ImportButton({ savantId, savantName, className }: ImportButtonPr
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const router = useRouter()
+  const { completeMilestone } = useOnboarding()
 
   const handleImport = async () => {
     setIsLoading(true)
@@ -28,6 +30,10 @@ export function ImportButton({ savantId, savantName, className }: ImportButtonPr
 
     if (result.success && result.savantId) {
       setSuccess(true)
+
+      // Track milestone for first savant import
+      await completeMilestone('firstSavantImported')
+
       setTimeout(() => {
         router.push(`/savants/${result.savantId}`)
       }, 1500)

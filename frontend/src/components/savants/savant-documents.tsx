@@ -32,12 +32,14 @@ interface SavantDocumentsProps {
   savantId: string
   accountId: string
   initialDocuments: Document[]
+  isTemplateInstance?: boolean
 }
 
 export function SavantDocuments({
   savantId,
   accountId,
   initialDocuments,
+  isTemplateInstance = false,
 }: SavantDocumentsProps) {
   const router = useRouter()
   const { completeMilestone } = useOnboarding()
@@ -126,9 +128,12 @@ export function SavantDocuments({
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Upload Documents</CardTitle>
+          <CardTitle>{isTemplateInstance ? 'Add Your Documents' : 'Upload Documents'}</CardTitle>
           <CardDescription>
-            Train your Savant with your own documents using RAG (Retrieval-Augmented Generation)
+            {isTemplateInstance
+              ? 'Upload additional documents to extend the knowledge base for your specific needs'
+              : 'Train your Savant with your own documents using RAG (Retrieval-Augmented Generation)'
+            }
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -156,8 +161,13 @@ export function SavantDocuments({
 
       <Card>
         <CardHeader>
-          <CardTitle>Documents ({initialDocuments.length})</CardTitle>
-          <CardDescription>Manage your training documents</CardDescription>
+          <CardTitle>{isTemplateInstance ? 'Your Documents' : 'Documents'} ({initialDocuments.length})</CardTitle>
+          <CardDescription>
+            {isTemplateInstance
+              ? 'Your additional documents (template knowledge base is included but hidden)'
+              : 'Manage your training documents'
+            }
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {initialDocuments.length > 0 ? (

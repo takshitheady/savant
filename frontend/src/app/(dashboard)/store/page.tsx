@@ -5,6 +5,8 @@ import { StoreSearch } from '@/components/store/store-search'
 import { SavantCard } from '@/components/store/savant-card'
 import { MilestoneTracker } from '@/components/onboarding'
 import { Sparkles, TrendingUp } from 'lucide-react'
+import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export const metadata = {
   title: 'Official Savants | Savant',
@@ -26,6 +28,26 @@ async function FeaturedSection() {
 
   if (featured.length === 0) return null
 
+  // Get user's update status for imported savants
+  const supabase = await createClient()
+  const adminSupabase = createAdminClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  let updateStatusMap: Record<string, { current_version: number, latest_version: number, update_available: boolean }> = {}
+
+  if (user) {
+    const { data: updateStatuses } = await adminSupabase
+      .from('savant_update_status')
+      .select('template_id, current_version, latest_version, update_available')
+      .eq('account_id', (await adminSupabase.from('account_members').select('account_id').eq('user_id', user.id).single()).data?.account_id)
+
+    if (updateStatuses) {
+      updateStatuses.forEach(status => {
+        updateStatusMap[status.template_id] = status
+      })
+    }
+  }
+
   return (
     <section className="mb-10">
       <div className="flex items-center gap-2 mb-4">
@@ -33,9 +55,20 @@ async function FeaturedSection() {
         <h2 className="text-xl font-semibold text-foreground">Featured Savants</h2>
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {featured.map((listing) => (
-          <SavantCard key={listing.id} listing={listing} />
-        ))}
+        {featured.map((listing) => {
+          const updateStatus = updateStatusMap[listing.savant_id]
+          return (
+            <SavantCard
+              key={listing.id}
+              listing={{
+                ...listing,
+                template_version: (listing as any).savants?.version,
+                user_current_version: updateStatus?.current_version,
+                has_update: updateStatus?.update_available || false,
+              }}
+            />
+          )
+        })}
       </div>
     </section>
   )
@@ -58,6 +91,29 @@ async function AllListingsSection() {
     )
   }
 
+  // Get user's update status for imported savants
+  const supabase = await createClient()
+  const adminSupabase = createAdminClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  let updateStatusMap: Record<string, { current_version: number, latest_version: number, update_available: boolean }> = {}
+
+  if (user) {
+    const accountMember = await adminSupabase.from('account_members').select('account_id').eq('user_id', user.id).single()
+    if (accountMember.data) {
+      const { data: updateStatuses } = await adminSupabase
+        .from('savant_update_status')
+        .select('template_id, current_version, latest_version, update_available')
+        .eq('account_id', accountMember.data.account_id)
+
+      if (updateStatuses) {
+        updateStatuses.forEach(status => {
+          updateStatusMap[status.template_id] = status
+        })
+      }
+    }
+  }
+
   return (
     <section>
       <div className="flex items-center gap-2 mb-4">
@@ -65,9 +121,20 @@ async function AllListingsSection() {
         <h2 className="text-xl font-semibold text-foreground">All Savants</h2>
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {listings.map((listing) => (
-          <SavantCard key={listing.id} listing={listing} />
-        ))}
+        {listings.map((listing) => {
+          const updateStatus = updateStatusMap[listing.savant_id]
+          return (
+            <SavantCard
+              key={listing.id}
+              listing={{
+                ...listing,
+                template_version: (listing as any).savants?.version,
+                user_current_version: updateStatus?.current_version,
+                has_update: updateStatus?.update_available || false,
+              }}
+            />
+          )
+        })}
       </div>
     </section>
   )

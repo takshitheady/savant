@@ -10,26 +10,18 @@ export const TOUR_STEPS: TourStep[] = [
     spotlightPadding: 16,
   },
   {
-    id: 'new-savant-button',
-    target: '[data-tour="new-savant-button"]',
-    title: 'Create Your First Savant',
-    content: 'Click here to create a new AI assistant. Choose a name, select an AI model, and define its personality.',
-    placement: 'bottom',
-    spotlightPadding: 8,
+    id: 'sidebar-store',
+    target: '[data-tour="sidebar-store"]',
+    title: 'Official Savants',
+    content: 'Discover pre-built Savants created by Heady. Import them with one click to get started quickly.',
+    placement: 'right',
+    spotlightPadding: 4,
   },
   {
     id: 'sidebar-savants',
     target: '[data-tour="sidebar-savants"]',
     title: 'Your Savants',
-    content: 'All your AI assistants live here. View, edit, upload documents, or start chatting with any Savant.',
-    placement: 'right',
-    spotlightPadding: 4,
-  },
-  {
-    id: 'sidebar-store',
-    target: '[data-tour="sidebar-store"]',
-    title: 'Official Savants',
-    content: 'Discover pre-built Savants created by Heady. Import them with one click to get started quickly.',
+    content: 'All your imported AI assistants live here. View, edit, upload documents, or start chatting with any Savant.',
     placement: 'right',
     spotlightPadding: 4,
   },
@@ -70,8 +62,8 @@ export const TOUR_STEPS: TourStep[] = [
 export const FEATURE_CARDS = [
   {
     icon: 'Bot',
-    title: 'Build AI Assistants',
-    description: 'Create custom AI assistants powered by Claude, GPT, Gemini, and more.',
+    title: 'Import AI Assistants',
+    description: 'Import professionally crafted AI assistants powered by Claude, GPT, Gemini, and more.',
   },
   {
     icon: 'FileText',
@@ -92,21 +84,27 @@ export const FEATURE_CARDS = [
 
 export const MILESTONES = [
   {
+    key: 'storeExplored' as const,
+    title: 'Explore Official Savants',
+    description: 'Discover Savants by Heady',
+    href: '/store',
+  },
+  {
+    key: 'firstSavantImported' as const,
+    title: 'Import your first Savant',
+    description: 'Get started with a professional AI assistant',
+    href: '/store',
+  },
+  {
     key: 'brandVoiceConfigured' as const,
     title: 'Set up Brand Voice',
     description: 'Define your brand personality',
     href: '/prompts',
   },
   {
-    key: 'firstSavantCreated' as const,
-    title: 'Create your first Savant',
-    description: 'Build your first AI assistant',
-    href: '/savants/new',
-  },
-  {
     key: 'firstDocumentUploaded' as const,
     title: 'Upload a document',
-    description: 'Train your Savant with knowledge',
+    description: 'Add custom knowledge to your Savant',
     href: '/savants',
   },
   {
@@ -114,11 +112,5 @@ export const MILESTONES = [
     title: 'Send your first message',
     description: 'Chat with your AI assistant',
     href: '/savants',
-  },
-  {
-    key: 'storeExplored' as const,
-    title: 'Explore Official Savants',
-    description: 'Discover Savants by Heady',
-    href: '/store',
   },
 ]
