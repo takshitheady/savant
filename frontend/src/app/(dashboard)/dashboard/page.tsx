@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { Button } from '@/components/ui/button'
-import { Bot, FileText, MessageSquare, Plus, ArrowRight, TrendingUp } from 'lucide-react'
+import { Bot, FileText, MessageSquare, Plus, ArrowRight, TrendingUp, Store } from 'lucide-react'
 import Link from 'next/link'
 
 export default async function DashboardPage() {
@@ -19,6 +19,10 @@ export default async function DashboardPage() {
     .single()
 
   const accountId = accountMember?.account_id || ''
+
+  // Check if user is platform admin
+  const { data: isAdmin } = await adminSupabase
+    .rpc('is_platform_admin', { check_user_id: user!.id })
 
   // Get all stats in parallel
   const [savantsResult, documentsCount, messagesCount, recentSavants, recentMessages] = await Promise.all([
@@ -68,12 +72,21 @@ export default async function DashboardPage() {
             Here's an overview of your Savants
           </p>
         </div>
-        <Link href="/savants/new">
-          <Button className="gap-2 rounded-xl" data-tour="new-savant-button">
-            <Plus className="h-4 w-4" />
-            New Savant
-          </Button>
-        </Link>
+        {isAdmin ? (
+          <Link href="/savants/new">
+            <Button className="gap-2 rounded-xl" data-tour="new-savant-button">
+              <Plus className="h-4 w-4" />
+              New Savant
+            </Button>
+          </Link>
+        ) : (
+          <Link href="/store">
+            <Button className="gap-2 rounded-xl" data-tour="store-button">
+              <Store className="h-4 w-4" />
+              Browse Store
+            </Button>
+          </Link>
+        )}
       </div>
 
       {/* Stats - Clean inline style */}
@@ -146,15 +159,30 @@ export default async function DashboardPage() {
           ) : (
             <div className="rounded-xl bg-white p-8 text-center">
               <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
-                <Bot className="h-6 w-6 text-muted-foreground" />
+                {isAdmin ? (
+                  <Bot className="h-6 w-6 text-muted-foreground" />
+                ) : (
+                  <Store className="h-6 w-6 text-muted-foreground" />
+                )}
               </div>
-              <p className="text-muted-foreground mb-4">No Savants yet</p>
-              <Link href="/savants/new">
-                <Button size="sm" className="rounded-xl gap-2">
-                  <Plus className="h-4 w-4" />
-                  Create your first Savant
-                </Button>
-              </Link>
+              <p className="text-muted-foreground mb-4">
+                {isAdmin ? 'No Savants yet' : 'No Savants imported yet'}
+              </p>
+              {isAdmin ? (
+                <Link href="/savants/new">
+                  <Button size="sm" className="rounded-xl gap-2">
+                    <Plus className="h-4 w-4" />
+                    Create your first Savant
+                  </Button>
+                </Link>
+              ) : (
+                <Link href="/store">
+                  <Button size="sm" className="rounded-xl gap-2">
+                    <Store className="h-4 w-4" />
+                    Import from Store
+                  </Button>
+                </Link>
+              )}
             </div>
           )}
         </div>
@@ -169,9 +197,14 @@ export default async function DashboardPage() {
                   1
                 </div>
                 <div>
-                  <p className="text-sm font-medium">Create a Savant</p>
+                  <p className="text-sm font-medium">
+                    {isAdmin ? 'Create a Savant' : 'Import a Savant'}
+                  </p>
                   <p className="text-xs text-muted-foreground">
-                    Define your AI assistant's purpose
+                    {isAdmin
+                      ? 'Define your AI assistant\'s purpose'
+                      : 'Choose a professional AI assistant'
+                    }
                   </p>
                 </div>
               </div>
@@ -181,9 +214,14 @@ export default async function DashboardPage() {
                   2
                 </div>
                 <div>
-                  <p className="text-sm font-medium">Upload Documents</p>
+                  <p className="text-sm font-medium">
+                    {isAdmin ? 'Upload Documents' : 'Add Your Documents'}
+                  </p>
                   <p className="text-xs text-muted-foreground">
-                    Add PDFs to build knowledge
+                    {isAdmin
+                      ? 'Add PDFs to build knowledge'
+                      : 'Customize with your own PDFs'
+                    }
                   </p>
                 </div>
               </div>
@@ -201,12 +239,21 @@ export default async function DashboardPage() {
               </div>
             </div>
 
-            <Link href="/savants/new" className="block">
-              <Button className="w-full rounded-xl gap-2">
-                <Plus className="h-4 w-4" />
-                Create Savant
-              </Button>
-            </Link>
+            {isAdmin ? (
+              <Link href="/savants/new" className="block">
+                <Button className="w-full rounded-xl gap-2">
+                  <Plus className="h-4 w-4" />
+                  Create Savant
+                </Button>
+              </Link>
+            ) : (
+              <Link href="/store" className="block">
+                <Button className="w-full rounded-xl gap-2">
+                  <Store className="h-4 w-4" />
+                  Browse Store
+                </Button>
+              </Link>
+            )}
           </div>
 
           {/* Recent Activity */}

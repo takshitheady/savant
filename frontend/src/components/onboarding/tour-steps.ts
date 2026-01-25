@@ -53,7 +53,7 @@ export const TOUR_STEPS: TourStep[] = [
     id: 'header-profile',
     target: '[data-tour="header-profile"]',
     title: 'Your Profile',
-    content: 'Access your account settings and sign out from here. You\'re all set! Ready to create your first Savant?',
+    content: 'Access your account settings and sign out from here. You\'re all set! Ready to import your first Savant?',
     placement: 'bottom',
     spotlightPadding: 8,
   },
