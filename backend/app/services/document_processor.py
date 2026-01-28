@@ -78,8 +78,8 @@ class DocumentProcessor:
             if not text or len(text.strip()) < 10:
                 raise ValueError("No meaningful text extracted from document")
 
-            # Clean text: replace newlines with spaces (OpenAI best practice)
-            cleaned_text = text.replace('\n', ' ').strip()
+            # Clean text: replace newlines with spaces, remove NULL bytes (OpenAI best practice)
+            cleaned_text = text.replace('\n', ' ').replace('\u0000', '').strip()
 
             # Split into chunks
             print(f"[DocumentProcessor] Splitting into chunks...")

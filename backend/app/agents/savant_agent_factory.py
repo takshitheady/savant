@@ -130,6 +130,9 @@ class SavantAgentFactory:
         if savant_prompt:
             instructions_parts.append(savant_prompt)
 
+        # RAG usage guidance is handled by Function.instructions in rag_tool.py
+        # Agno automatically injects it into the system message via add_instructions=True
+
         combined_instructions = "\n\n".join(instructions_parts) if instructions_parts else None
 
         # Create RAG function with bound savant_id

@@ -98,8 +98,20 @@ def create_rag_function(savant_id: str) -> Function:
     return Function(
         name="search_knowledge_base",
         description=(
-            "Search uploaded documents for relevant information. "
-            "Use this when the user asks questions that can be answered from their documents."
+            "Search uploaded documents and return EXACT information from them. "
+            "Use this whenever the user references their documents or asks about specific details."
         ),
+        instructions=(
+            "IMPORTANT — When using the search_knowledge_base tool:\n"
+            "1. You MUST use EXACT information from the retrieved documents\n"
+            "2. Do NOT invent, paraphrase, or extrapolate details not explicitly stated\n"
+            "3. If documents contain specific facts (names, dates, specifications, numbers), include them VERBATIM\n"
+            "4. If information is not in the documents, explicitly state: "
+            "'I don't have that information in the uploaded documents'\n"
+            "5. Quote or closely paraphrase the source material rather than summarizing in your own words\n"
+            "6. Preserve technical terms, product names, and proper nouns exactly as they appear\n"
+            "7. Prioritize document content over general knowledge when answering questions"
+        ),
+        add_instructions=True,
         entrypoint=search_knowledge_base
     )
