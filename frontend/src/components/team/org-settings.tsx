@@ -45,7 +45,7 @@ export function OrgSettings({ account }: OrgSettingsProps) {
     try {
       const result = await updateOrgSettings(account.id, {
         display_name: displayName,
-        description: description || null,
+        description: description || undefined,
         allow_member_invites: allowMemberInvites,
       })
 
