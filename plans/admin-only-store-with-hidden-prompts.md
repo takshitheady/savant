@@ -2,10 +2,11 @@
 
 ## Document Info
 - **Created**: January 2025
-- **Status**: Planning Phase - Schema Optimized
+- **Status**: Planning Phase - Deferred (focus on Org Team Access first)
 - **Complexity**: High - Major architectural redesign
 - **Estimated Effort**: 15-20 development days
-- **Last Updated**: Schema analysis completed, optimizations applied
+- **Last Updated**: January 29, 2026 - Schema partially applied (platform_admins, savant columns)
+- **Related**: See `organization-level-access.md` for team collaboration feature
 
 ---
 

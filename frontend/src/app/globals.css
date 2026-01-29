@@ -129,10 +129,9 @@ body {
   background: #A8A29E;
 }
 
-/* Focus styles - subtle */
+/* Focus styles - disabled globally, handled by components */
 *:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
+  outline: none;
 }
 
 /* Prose customization for markdown */

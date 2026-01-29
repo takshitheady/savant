@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Store,
   BarChart3,
+  Users,
 } from 'lucide-react'
 
 const navigation = [
@@ -46,6 +47,12 @@ const navigation = [
     href: '/prompts',
     icon: Mic2,
     tourId: 'sidebar-voice',
+  },
+  {
+    name: 'Team',
+    href: '/settings/team',
+    icon: Users,
+    tourId: 'sidebar-team',
   },
   {
     name: 'Settings',

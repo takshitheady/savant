@@ -1,6 +1,8 @@
-import { Settings } from 'lucide-react'
+import { Settings, Users, ChevronRight } from 'lucide-react'
+import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { RestartTourButton } from '@/components/onboarding/restart-tour-button'
+import { Button } from '@/components/ui/button'
 
 export const metadata = {
   title: 'Settings | Savant',
@@ -38,6 +40,35 @@ export default function SettingsPage() {
               </p>
             </div>
             <RestartTourButton />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Team Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Team
+          </CardTitle>
+          <CardDescription>
+            Manage your organization members and invitations
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">Team Settings</p>
+              <p className="text-sm text-muted-foreground">
+                Invite members, manage roles, and configure team access
+              </p>
+            </div>
+            <Link href="/settings/team">
+              <Button variant="outline" size="sm">
+                Manage Team
+                <ChevronRight className="ml-1 h-4 w-4" />
+              </Button>
+            </Link>
           </div>
         </CardContent>
       </Card>
