@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Star, Download, Bot, ArrowUpCircle } from 'lucide-react'
+import { Download, Bot, ArrowUpCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { StoreListingSearchResult } from '@/types/database'
 import { VersionBadge } from '@/components/ui/version-badge'
@@ -62,17 +62,10 @@ export function SavantCard({ listing, className }: SavantCardProps) {
       </div>
 
       {/* Stats */}
-      <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-        <div className="flex items-center gap-1">
-          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-          <span>{listing.average_rating?.toFixed(1) || '0.0'}</span>
-          {listing.review_count > 0 && (
-            <span className="text-xs">({listing.review_count})</span>
-          )}
-        </div>
+      <div className="mt-4 flex items-center justify-end text-sm text-muted-foreground">
         <div className="flex items-center gap-1">
           <Download className="h-4 w-4" />
-          <span>{listing.import_count || 0}</span>
+          <span>{listing.import_count || 0} imports</span>
         </div>
       </div>
 

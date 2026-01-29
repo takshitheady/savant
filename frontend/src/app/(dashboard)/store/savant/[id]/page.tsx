@@ -1,10 +1,7 @@
-import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { getStoreListing, getListingReviews } from '@/actions/store'
-import { RatingDisplay } from '@/components/store/rating-display'
+import { getStoreListing } from '@/actions/store'
 import { ImportButton } from '@/components/store/import-button'
-import { ReviewForm } from '@/components/store/review-form'
 import {
   Bot,
   Download,
@@ -13,7 +10,6 @@ import {
   Calendar,
   User,
   Tag,
-  Star,
 } from 'lucide-react'
 
 interface SavantDetailPageProps {
@@ -32,50 +28,6 @@ export async function generateMetadata({ params }: SavantDetailPageProps) {
     title: `${listing.savants.name} | Savant Store`,
     description: listing.tagline || listing.savants.description,
   }
-}
-
-async function ReviewsSection({ listingId }: { listingId: string }) {
-  const reviews = await getListingReviews(listingId)
-
-  return (
-    <div className="space-y-6">
-      {/* Review Form */}
-      <ReviewForm listingId={listingId} />
-
-      {/* Reviews List */}
-      {reviews.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
-          <Star className="h-8 w-8 mx-auto mb-2 opacity-50" />
-          <p>No reviews yet</p>
-          <p className="text-sm">Be the first to review!</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {reviews.map((review) => (
-            <div key={review.id} className="rounded-lg border border-border p-4">
-              <div className="flex items-center justify-between mb-2">
-                <RatingDisplay rating={review.rating} size="sm" />
-                {review.is_verified_import && (
-                  <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                    Verified Import
-                  </span>
-                )}
-              </div>
-              {review.title && (
-                <h4 className="font-medium text-foreground">{review.title}</h4>
-              )}
-              {review.content && (
-                <p className="mt-1 text-sm text-muted-foreground">{review.content}</p>
-              )}
-              <p className="mt-2 text-xs text-muted-foreground">
-                {new Date(review.created_at!).toLocaleDateString()}
-              </p>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
 }
 
 export default async function SavantDetailPage({ params }: SavantDetailPageProps) {
@@ -121,11 +73,6 @@ export default async function SavantDetailPage({ params }: SavantDetailPageProps
 
           {/* Stats Row */}
           <div className="mt-4 flex flex-wrap items-center gap-4 text-sm">
-            <RatingDisplay rating={listing.average_rating || 0} />
-            <span className="text-muted-foreground">
-              ({listing.review_count || 0} reviews)
-            </span>
-            <span className="text-muted-foreground">|</span>
             <div className="flex items-center gap-1 text-muted-foreground">
               <Download className="h-4 w-4" />
               <span>{listing.import_count || 0} imports</span>
@@ -208,13 +155,6 @@ export default async function SavantDetailPage({ params }: SavantDetailPageProps
         </div>
       </section>
 
-      {/* Reviews */}
-      <section>
-        <h2 className="text-xl font-semibold text-foreground mb-4">Reviews</h2>
-        <Suspense fallback={<div className="animate-pulse h-32 bg-muted rounded-lg" />}>
-          <ReviewsSection listingId={listing.id} />
-        </Suspense>
-      </section>
     </div>
   )
 }
