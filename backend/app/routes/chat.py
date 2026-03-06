@@ -21,6 +21,14 @@ import time
 
 logger = logging.getLogger(__name__)
 
+# User-friendly display names for tool calls
+TOOL_DISPLAY_NAMES = {
+    'search_knowledge_base': 'Searching your documents...',
+    'COMPOSIO_SEARCH_TOOLS': 'Finding the right analytics tools...',
+    'COMPOSIO_MULTI_EXECUTE_TOOL': 'Fetching data from Google...',
+    'COMPOSIO_GET_TOOL_SCHEMAS': 'Loading tool details...',
+    'COMPOSIO_MANAGE_CONNECTIONS': 'Managing connections...',
+}
 
 router = APIRouter()
 
@@ -140,13 +148,31 @@ async def chat(request: ChatRequest):
             # Send initial event with conversation_id for frontend tracking
             yield f"data: {json.dumps({'type': 'start', 'savant': savant_name, 'conversation_id': conversation_id})}\n\n"
 
-            # Run agent with streaming
-            async for chunk in agent.arun(request.message, stream=True):
+            # Run agent with streaming + tool call events
+            async for chunk in agent.arun(request.message, stream=True, stream_events=True):
                 if not first_chunk_received:
                     logger.info(f"[TIMING] First chunk received at {time.time() - start_time:.2f}s")
                     first_chunk_received = True
 
-                if chunk.content:
+                event_type = getattr(chunk, 'event', None)
+
+                if event_type == 'ToolCallStarted':
+                    tool_name = chunk.tool.tool_name if chunk.tool else 'unknown'
+                    display_name = TOOL_DISPLAY_NAMES.get(tool_name, f'Using {tool_name}...')
+                    logger.info(f"[TOOL] Started: {tool_name}")
+                    yield f"data: {json.dumps({'type': 'tool_start', 'tool': tool_name, 'display': display_name})}\n\n"
+
+                elif event_type == 'ToolCallCompleted':
+                    tool_name = chunk.tool.tool_name if chunk.tool else 'unknown'
+                    logger.info(f"[TOOL] Completed: {tool_name}")
+                    yield f"data: {json.dumps({'type': 'tool_done', 'tool': tool_name})}\n\n"
+
+                elif event_type == 'ToolCallError':
+                    tool_name = chunk.tool.tool_name if chunk.tool else 'unknown'
+                    logger.warning(f"[TOOL] Error: {tool_name} - {getattr(chunk, 'error', '')}")
+                    yield f"data: {json.dumps({'type': 'tool_error', 'tool': tool_name})}\n\n"
+
+                elif hasattr(chunk, 'content') and chunk.content:
                     full_response += chunk.content
 
                     # Send content chunk

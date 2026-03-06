@@ -1,11 +1,11 @@
 # Brand Voice Feature - Complete Documentation
 
 ## Document Info
-- **Version**: 1.0
-- **Last Updated**: January 2025
+- **Version**: 2.0
+- **Last Updated**: March 2026
 - **Status**: Production
 
-**Note**: This document focuses on the Brand Voice feature. For authentication and form validation updates (January 2025), see ARCHITECTURE.md and IMPLEMENTATION_GUIDE.md.
+**Note**: Brand Voice is an **admin-only** feature. Only platform admins (Heady team) can configure brand voice. End users cannot access or modify brand voice settings. The generated brand voice is applied as a hidden system prompt to all savants in the admin's account.
 
 ---
 
@@ -27,32 +27,26 @@
 
 ### What is Brand Voice?
 
-Brand Voice allows users to define their brand's personality and communication style, ensuring consistent messaging across all Savants (AI assistants) in their account. The generated brand voice becomes a system prompt that automatically applies to all conversations.
+Brand Voice allows **platform admins** to define the brand's personality and communication style, ensuring consistent messaging across all published Savants. The generated brand voice becomes a hidden system prompt that automatically applies to all conversations. End users cannot see or modify the brand voice.
+
+### Who Can Use It
+
+- **Platform Admins (Heady team)**: Full access to create, edit, and manage brand voice
+- **End Users**: Cannot access brand voice settings. Brand voice is applied invisibly.
 
 ### Why It Matters
 
-- **Consistency**: All Savants speak with the same brand personality
-- **Time Savings**: No need to manually write system prompts
+- **Consistency**: All published Savants speak with the same brand personality
+- **Hidden from Users**: Brand voice is part of the admin's hidden IP
 - **AI-Powered**: Uses Claude Haiku 4.5 to generate natural, cohesive brand voice instructions
 - **Flexible**: Choose between simple trait-based or advanced comprehensive modes
 
 ### Key Features
 
-✅ **Two Modes**:
-- **Simple**: Quick trait selection with AI prompt generation
-- **Advanced**: Comprehensive brand context with website analysis
-
-✅ **10 Personality Traits**:
-Cheerful, Agreeable, Social, Gen Z, Funny, Realistic, Formal, Empathetic, Concise, Detailed
-
-✅ **Advanced Options**:
-- Business Information with quick-select presets
-- Website Analysis (auto-extract business data with Firecrawl + AI)
-- Brand Identity (pillars, differentiators, restrictions)
-- Voice Dimensions (7 "This vs That" spectrums)
-
-✅ **Onboarding Integration**:
-Tour step highlights advanced features for new users
+- **Two Modes**: Simple (trait selection) and Advanced (comprehensive brand context)
+- **10 Personality Traits**: Cheerful, Agreeable, Social, Gen Z, Funny, Realistic, Formal, Empathetic, Concise, Detailed
+- **Advanced Options**: Business Info, Website Analysis, Brand Identity, Voice Dimensions
+- **Admin-Only Access**: Not visible in end user dashboard
 
 ---
 
@@ -703,10 +697,10 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=xxx
 
 ## 7. User Flow
 
-### Simple Mode Flow
+### Simple Mode Flow (Admin Only)
 
 ```
-1. User lands on /prompts
+1. Admin lands on /prompts (not accessible to end users)
    ↓
 2. See personality trait chips
    ↓
@@ -724,13 +718,13 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=xxx
    ↓
 9. Click "Save Brand Voice"
    ↓
-10. Success! Brand voice active for all Savants
+10. Success! Brand voice applied as hidden prompt to all Savants
 ```
 
-### Advanced Mode Flow
+### Advanced Mode Flow (Admin Only)
 
 ```
-1. User lands on /prompts
+1. Admin lands on /prompts
    ↓
 2. Select personality traits
    ↓

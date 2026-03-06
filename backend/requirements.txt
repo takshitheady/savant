@@ -81,3 +81,7 @@ tiktoken==0.8.0
 psycopg>=3.0.0
 psycopg-binary>=3.0.0
 sqlalchemy>=2.0.0
+
+# Composio - Third-party tool integrations (GA4, GSC, etc.)
+composio>=0.7.0
+mcp>=1.0.0

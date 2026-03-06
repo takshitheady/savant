@@ -1,176 +1,174 @@
 # Savant - Product Requirements Document (PRD)
 
 ## Document Info
-- **Version**: 1.1
-- **Last Updated**: January 2025
+- **Version**: 2.0
+- **Last Updated**: March 2026
 - **Status**: Active Development
 
-## Recent Updates (January 2025)
+## Recent Updates (March 2026)
 
-###  Completed Features
+### Admin-Only Store Model (NEW)
 
-**Authentication & Security:**
+**Platform Model Change:**
+- Savant is now an **admin-curated AI assistant marketplace**
+- Only platform admins (Heady team) can create and publish savants
+- Normal users browse the store, import savants, and customize with their own data
+- Admin base prompts and knowledge bases are hidden from end users
+
+**Previous Updates (January 2025):**
 - ✅ Password Reset Flow - Complete email-based password reset with OTP verification
 - ✅ Auth Callback Security - Fixed open redirect vulnerability, added error handling
-- ✅ Error Messaging - User-friendly error messages for expired/invalid auth links
-
-**Form Validation & UX:**
-- ✅ Savant Creation Form - Fixed validation for optional fields using `.nullish()`
-- ✅ Character Limits - Increased to 3000 chars for description and system prompt
-- ✅ TypeScript Compatibility - Fixed null/undefined handling in controlled inputs
-- ✅ Next.js 16 Compatibility - Added Suspense wrappers for `useSearchParams()`
-
-**Files Modified:**
-- `frontend/src/app/api/auth/callback/route.ts` - Enhanced security and error handling
-- `frontend/src/components/auth/login-form.tsx` - Added error parameter parsing
-- `frontend/src/components/savants/savant-form.tsx` - Fixed validation schema
-- **New:** `frontend/src/app/(auth)/reset-password/page.tsx`
-- **New:** `frontend/src/components/auth/reset-password-form.tsx`
+- ✅ Savant Creation Form - Fixed validation for optional fields
+- ✅ RAG accuracy improvements - Agent now uses exact document content
 
 ---
 
 ## 1. Executive Summary
 
-**Savant** is a bot creation platform that enables users to build, train, and deploy AI-powered assistants ("Savants") with their own knowledge bases. Each Savant is an AI agent with:
-- Its own vector store for RAG (Retrieval-Augmented Generation)
-- Customizable system prompts
+**Savant** is an admin-curated AI assistant marketplace. Platform admins (Heady team) build, train, and publish AI-powered assistants ("Savants") with hidden knowledge bases and base instructions. End users browse the store, import savants into their account, and customize them with their own instructions and documents.
+
+Each Savant is an AI agent with:
+- A hidden admin knowledge base (RAG) that powers its expertise
+- Hidden base system prompts that define its core behavior
+- User-customizable instructions layered on top
+- User-uploadable documents for personalization
 - Configurable LLM settings
-- Future: Multi-agent connections and tool integrations
 
 ### North Star
-[Relevance AI](https://relevanceai.com/) - A platform where users can build AI agents in seconds, give them tools and knowledge, and deploy them for various use cases.
+**Shopify App Store meets ChatGPT** - A curated marketplace of pre-built, expert AI assistants that users can import and customize for their specific business needs.
 
 ---
 
 ## 2. Problem Statement
 
 ### Current Pain Points
-1. **Complexity**: Building custom AI assistants requires deep technical knowledge
-2. **Data Silos**: Users can't easily bring their own data to train AI
-3. **Lack of Customization**: Generic chatbots don't adapt to specific business needs
-4. **Scalability**: Self-hosted solutions are hard to scale
-5. **Cost**: Enterprise solutions are prohibitively expensive for small teams
+1. **Complexity**: Building useful AI assistants from scratch requires prompt engineering expertise
+2. **Cold Start**: Users don't know what instructions to give an AI to make it useful
+3. **Quality Control**: User-created bots are inconsistent in quality
+4. **IP Protection**: Platform creators need to protect their prompt engineering and curated knowledge
+5. **Customization**: Users still need to personalize AI for their specific context
 
-### Target Users
-- **Primary**: Small-to-medium businesses wanting AI assistants for customer support, internal knowledge bases, sales assistance
-- **Secondary**: Developers and agencies building AI solutions for clients
-- **Tertiary**: Enterprise teams needing customizable AI workflows
+### User Roles
+
+#### Platform Admins (Heady Team)
+- Create savants from scratch with expert-crafted prompts
+- Upload curated knowledge bases (hidden from end users)
+- Publish savants to the store with descriptions, categories, and tags
+- Push updates to all users who imported a savant
+- Manage store listings, categories, and featured items
+
+#### End Users (Customers)
+- Browse the store to discover pre-built savants
+- Import savants into their account
+- Customize imported savants with their own instructions
+- Upload their own documents to personalize the savant
+- Chat with savants
+- Cannot create savants from scratch
+- Cannot see admin base prompts or admin knowledge base documents
 
 ---
 
 ## 3. Product Vision
 
 ### Value Proposition
-"Create AI assistants trained on YOUR data in minutes, not months."
+"Expert AI assistants, ready to use. Customize with your data in minutes."
 
 ### Key Differentiators
-1. **Per-Savant Vector Stores**: Complete data isolation between bots
-2. **Multi-tenant by Design**: Enterprise-grade security with RLS
-3. **Hierarchical Prompts**: Account-level + bot-level prompt management
-4. **Future-Ready**: Architecture supports multi-agent workflows and tool integrations
+1. **Admin-Curated Quality**: Every savant is expert-crafted by the Heady team
+2. **Hidden IP Protection**: Admin prompts and knowledge bases are invisible to users
+3. **Easy Customization**: Users add their own instructions and documents on top
+4. **Per-Savant Vector Stores**: Complete data isolation between bots
+5. **Update Push**: Admin improvements automatically available to all users
 
 ---
 
 ## 4. Feature Requirements
 
-### MVP (Phase 1)
+### 4.1 User Roles & Permissions
 
-#### 4.1 User Authentication
+#### Platform Admin (Heady Team)
+| Feature | Priority | Status | Description |
+|---------|----------|--------|-------------|
+| Create savants | P0 | ✅ Complete | Full savant creation with name, prompts, model config |
+| Upload admin documents | P0 | ✅ Complete | Hidden knowledge base (invisible to end users) |
+| Write base system prompts | P0 | ✅ Complete | Hidden base instructions |
+| Publish to store | P0 | 🔧 Building | List savant in marketplace with category, tags, description |
+| Push updates | P1 | 🔜 Planned | Update template, notify users of new version |
+| Manage store | P1 | 🔜 Planned | Feature savants, manage categories, moderate reviews |
+| Brand voice (admin) | P0 | ✅ Complete | Define brand personality applied to all savants |
+
+#### End User (Customer)
+| Feature | Priority | Status | Description |
+|---------|----------|--------|-------------|
+| Browse store | P0 | ✅ Complete | Discover savants by category, search, featured |
+| Import savant | P0 | ✅ Complete | Clone savant to own account |
+| Add custom instructions | P0 | ✅ Complete | Layer own prompts on top of hidden base |
+| Upload own documents | P0 | ✅ Complete | Add personal knowledge base |
+| Chat with savants | P0 | ✅ Complete | Streaming chat with RAG |
+| Receive updates | P1 | 🔜 Planned | Notification when admin pushes new version |
+| Cannot create savants | P0 | 🔧 Building | No "Create Savant" button in UI |
+| Cannot see admin prompts | P0 | 🔧 Building | Base prompts hidden from settings |
+| Cannot see admin docs | P0 | 🔧 Building | Admin documents hidden from document list |
+
+### 4.2 What Users See vs What's Hidden
+
+```
+VISIBLE TO USER                       HIDDEN FROM USER
+-----------------                     -----------------
+Savant name & description             Base system prompt (admin-written)
+Their own custom instructions         Admin knowledge base documents
+Their own uploaded documents          Admin document chunks in RAG results
+Chat interface                        Model config details
+Store listing info                    Internal prompt hierarchy
+"Update available" badge              How updates are pushed
+```
+
+### 4.3 Authentication
 | Feature | Priority | Status | Description |
 |---------|----------|--------|-------------|
 | Email signup/login | P0 | ✅ Complete | Basic auth via Supabase |
 | OAuth (Google) | P0 | ✅ Complete | Social login |
 | Account creation | P0 | ✅ Complete | Auto-create account on first login |
-| Password reset | P0 | ✅ Complete (Jan 2025) | Email-based password reset with OTP |
-| Team invitations | P2 | 🔜 Planned | Invite team members (post-MVP) |
+| Password reset | P0 | ✅ Complete | Email-based password reset with OTP |
+| Admin role check | P0 | 🔧 Building | `platform_admins` table for admin verification |
 
-**Password Reset Flow Details:**
-- User clicks "Forgot Password" on login page
-- Email sent with OTP link (24-hour expiration)
-- Auth callback validates code and redirects to reset page
-- Password validation: min 8 characters, confirmation required
-- Error handling for expired/invalid links
-- Security: prevents open redirect attacks
-
-#### 4.2 Savant Management
+### 4.4 Store & Marketplace
 | Feature | Priority | Status | Description |
 |---------|----------|--------|-------------|
-| Create Savant | P0 | ✅ Complete | Name, description (3000 chars), model selection |
-| System Prompt | P0 | ✅ Complete | Up to 3000 characters, optional field |
-| Update Savant | P0 | ✅ Complete | Edit settings, prompt, model config |
-| Delete Savant | P0 | ✅ Complete | Soft delete with data cleanup |
-| List Savants | P0 | ✅ Complete | Dashboard view of all Savants |
-| Savant Settings | P0 | ✅ Complete | System prompt, temperature, max tokens |
+| Store categories | P0 | ✅ Complete | 10 categories seeded |
+| Store listings | P0 | ✅ Complete | Savant cards with description, tags, ratings |
+| Import flow | P0 | ✅ Complete | One-click import to user account |
+| Search & filter | P1 | ✅ Complete | By category, tags, popularity |
+| Featured savants | P1 | ✅ Complete | Admin-promoted listings |
+| Reviews & ratings | P2 | ✅ Complete | User feedback on imported savants |
 
-**Form Validation Improvements (Jan 2025):**
-- Fixed `.nullish()` validation for optional fields
-- Character limits: description (3000), system_prompt (3000)
-- Proper handling of null/undefined values in forms
-- TypeScript-safe controlled inputs
-
-#### 4.3 Document Management
+### 4.5 Document Management
 | Feature | Priority | Description |
 |---------|----------|-------------|
-| Upload documents | P0 | PDF, DOCX, TXT, MD support |
+| Admin document upload | P0 | Hidden knowledge base for savant templates |
+| User document upload | P0 | PDF, DOCX, TXT, MD support |
 | Processing status | P0 | Show chunking/embedding progress |
-| Delete documents | P0 | Remove with associated vectors |
-| Document preview | P1 | View uploaded content |
+| Document visibility | P0 | Admin docs hidden, user docs visible |
+| RAG filtering | P0 | Admin docs used in RAG but not shown in UI |
 
-#### 4.4 Chat Interface
+### 4.6 Chat Interface
 | Feature | Priority | Description |
 |---------|----------|-------------|
 | Send messages | P0 | User input |
 | Streaming responses | P0 | Real-time token display |
-| RAG retrieval | P0 | Context from vector store |
+| RAG retrieval | P0 | Context from both admin + user documents |
 | Conversation history | P1 | Persist and display history |
 | Stop generation | P1 | Cancel streaming response |
 
-#### 4.5 Prompt Management
-| Feature | Priority | Description |
-|---------|----------|-------------|
-| Bot system prompt | P0 | Per-Savant customization |
-| Account default prompt | P1 | Applied to all Savants |
-| Prompt overrides | P1 | Priority-based resolution |
-
-#### 4.6 Brand Voice
+### 4.7 Brand Voice (Admin Only)
 | Feature | Priority | Description |
 |---------|----------|-------------|
 | Trait-based generation | P0 | Select 2-10 personality traits, AI generates system prompt |
 | Simple mode | P0 | Quick trait selection with custom notes |
-| Advanced mode | P1 | Comprehensive brand context with 3 sections |
-| Business information | P1 | Company details, category, ideal customer |
+| Advanced mode | P1 | Business info, brand identity, voice dimensions |
 | Website analysis | P1 | Auto-extract business info from URL using Firecrawl + AI |
-| Brand identity | P1 | Pillars, differentiators, messaging restrictions |
-| Voice dimensions | P1 | 7 "This vs That" spectrums (casual/formal, etc.) |
-| Quick-select presets | P1 | Common options for faster form completion |
-| Onboarding integration | P1 | Tour step highlighting advanced options |
 
-**Brand Voice Details:**
-
-Users can define their brand's personality to ensure consistent communication across all Savants.
-
-**Simple Mode:**
-- Select from 10 personality traits: Cheerful, Agreeable, Social, Gen Z, Funny, Realistic, Formal, Empathetic, Concise, Detailed
-- Add custom notes for additional context
-- AI generates a 2-3 paragraph system prompt automatically using Claude Haiku 4.5
-
-**Advanced Mode:**
-- **Business Information**: Company name, website URL, business description, primary category (9 options), locations, ideal customer
-  - **Website Analysis**: Enter URL and click "Analyze" to auto-extract business info using Firecrawl API + AI extraction
-  - Quick-select presets for locations (USA, Global, Europe, Asia-Pacific) and customer types (B2B, B2C, Enterprise, SMB, Startups)
-- **Brand Identity**: Brand pillars (multi-select with presets), voice description, differentiators, past campaign learnings, messaging restrictions
-  - Voice style presets: Professional, Friendly, Expert, Warm, Bold
-- **Voice Dimensions**: 7 spectrums with A/B/Neither options
-  - Casual vs Formal, Playful vs Serious, Polished vs Gritty, Warm vs Cool, Classic vs Trendy, Expert vs Insider, Laid-back vs Bold
-  - Optional notes for each dimension
-
-**Technical Implementation:**
-- Powered by Claude Haiku 4.5 via OpenRouter API
-- Website scraping via Firecrawl API (optional, 500 free credits/month)
-- AI extraction of structured business data from website content
-- Stored in `account_prompts` table with JSONB for flexibility (`brand_voice_traits` field)
-- Applied to all Savants in the account with priority-based system (priority: 100)
-- Expandable UI with completion tracking (X/3 sections)
+Brand voice is configured by admins and applied across all savants in the account. End users do not configure brand voice.
 
 ### Future Phases
 
@@ -179,6 +177,7 @@ Users can define their brand's personality to ensure consistent communication ac
 - Tool integrations (via MCP/Composio)
 - API access for external applications
 - Embeddable chat widgets
+- Version history for savant templates
 
 #### Phase 3 - Enterprise
 - Team workspaces with RBAC
@@ -213,19 +212,55 @@ Users can define their brand's personality to ensure consistent communication ac
 
 ## 6. User Flows
 
-### 6.1 New User Onboarding
+### 6.1 Admin: Create & Publish Savant
 ```
-Landing → Sign Up → Create Account → Create First Savant → Upload Document → Start Chat
-```
-
-### 6.2 Document Training
-```
-Select Savant → Upload Documents → Wait for Processing → View Chunks → Test with Chat
+Login (admin) → Create Savant → Write Base Prompt → Upload Knowledge Base →
+Test in Chat → Publish to Store (category, tags, description)
 ```
 
-### 6.3 Chatting with Savant
+### 6.2 Admin: Push Update to Users
 ```
-Open Savant → Enter Message → Retrieve RAG Context → Stream Response → Display Answer
+Edit Savant → Update Prompt/Docs → Push Update → Users See "Update Available" Badge →
+User Clicks Upgrade → Savant Updated (preserves user customizations)
+```
+
+### 6.3 End User: Onboarding
+```
+Landing → Sign Up → Browse Store → Import First Savant → (Optional) Add Instructions →
+(Optional) Upload Documents → Start Chat
+```
+
+### 6.4 End User: Customize Imported Savant
+```
+My Savants → Select Savant → Settings → Add Custom Instructions → Upload Own Documents →
+Test in Chat
+```
+
+### 6.5 End User: Chat with Savant
+```
+Open Savant → Enter Message → RAG retrieves from admin + user docs →
+Stream Response → Display Answer
+```
+
+### 6.6 What the User Dashboard Looks Like
+
+```
++---------------------------------------+
+|  My Savants                           |
+|                                       |
+|  [Sales Assistant] (from Store)       |
+|     Your instructions: "Focus on..."  |
+|     Your docs: company-pitch.pdf      |
+|     [Update available v2]             |
+|                                       |
+|  [Support Bot] (from Store)           |
+|     Your instructions: (none)         |
+|     Your docs: faq.docx              |
+|                                       |
+|  [+ Browse Store]                     |
+|                                       |
+|  (No "Create Savant" button)          |
++---------------------------------------+
 ```
 
 ---
@@ -236,17 +271,18 @@ Open Savant → Enter Message → Retrieve RAG Context → Stream Response → D
 | Metric | Target (M1) | Target (M3) |
 |--------|-------------|-------------|
 | Registered users | 100 | 1,000 |
-| Active Savants | 200 | 5,000 |
-| Documents uploaded | 500 | 10,000 |
+| Store savants published | 10 | 50 |
+| Savant imports | 200 | 5,000 |
 | Daily active users | 50 | 500 |
 
 ### Engagement Metrics
 | Metric | Target |
 |--------|--------|
 | Avg. messages per user/day | 10+ |
-| Savants per user | 2-3 |
-| Documents per Savant | 5-10 |
+| Savants imported per user | 2-3 |
+| User docs per Savant | 3-5 |
 | User retention (D7) | 40% |
+| Import-to-chat conversion | 70% |
 
 ---
 
@@ -308,11 +344,14 @@ Open Savant → Enter Message → Retrieve RAG Context → Stream Response → D
 
 ## 11. Open Questions
 
-1. **Embedding model**: OpenAI ada-002 (1536 dims) or smaller model?
-2. **Chunk size**: Default 1000 chars with 200 overlap - configurable per Savant?
-3. **Free tier limits**: How many Savants, documents, messages?
-4. **Model selection**: OpenAI only or also Anthropic, Google from start?
-5. **Public Savants**: Allow sharing bots publicly?
+1. **Embedding model**: OpenAI ada-002 (1536 dims) or smaller model? → Using ada-002
+2. **Chunk size**: Default 1000 chars with 200 overlap - configurable per Savant? → Default for now
+3. **Free tier limits**: How many savant imports, documents, messages?
+4. **Model selection**: OpenAI only or also Anthropic, Google from start? → OpenAI default, OpenRouter for flexibility
+5. ~~**Public Savants**: Allow sharing bots publicly?~~ → Resolved: Admin-only store model
+6. **Update push**: When admin updates a template, auto-push or let users choose?
+7. **Initial admin account**: Which user account(s) should be the initial platform admins?
+8. **Existing store listings**: What to do with any pre-existing user-created listings?
 
 ---
 
@@ -327,7 +366,15 @@ Open Savant → Enter Message → Retrieve RAG Context → Stream Response → D
 | Voiceflow | Visual builder | Learning curve |
 
 ### B. Glossary
-- **Savant**: An AI bot with its own knowledge base and settings
+- **Savant**: An AI assistant with its own knowledge base and settings
+- **Template Savant**: An admin-created savant published to the store
+- **Imported Savant**: A user's copy of a template savant, with their customizations
+- **Admin Documents**: Hidden knowledge base uploaded by admins (invisible to users)
+- **User Documents**: Documents uploaded by end users to personalize their savant
+- **Base Prompt**: Admin-written system prompt (hidden from users)
+- **Custom Instructions**: User-added instructions layered on top of base prompt
+- **Platform Admin**: Heady team member with full savant creation and store management access
+- **End User**: Customer who browses store, imports savants, and customizes them
 - **RAG**: Retrieval-Augmented Generation - using vector search to add context
 - **RLS**: Row Level Security - database-level access control
 - **AgentOS**: Agno's production runtime for AI agents

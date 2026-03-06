@@ -94,8 +94,9 @@ class SavantAgentFactory:
 
         savant_prompt = "\n\n".join(savant_prompt_parts) if savant_prompt_parts else None
 
-        # Extract model config to check brand voice preference
+        # Extract model config
         model_config = savant_data.get('model_config', {})
+        toolkits = model_config.get('toolkits', ['rag'])
 
         # Check if savant should use brand voice
         # Default: True for new savants, False for imported savants (have cloned_from_id)
@@ -133,10 +134,52 @@ class SavantAgentFactory:
         # RAG usage guidance is handled by Function.instructions in rag_tool.py
         # Agno automatically injects it into the system message via add_instructions=True
 
-        combined_instructions = "\n\n".join(instructions_parts) if instructions_parts else None
+        # Build tools list dynamically based on model_config.toolkits
+        tools_list = []
 
-        # Create RAG function with bound savant_id
-        rag_function = create_rag_function(savant_id)
+        # RAG tool (default for all savants)
+        if 'rag' in toolkits:
+            rag_function = create_rag_function(savant_id)
+            tools_list.append(rag_function)
+
+        # Composio-backed toolkits (GA4, GSC, etc.)
+        composio_toolkit_names = [tk for tk in toolkits if tk != 'rag']
+        if composio_toolkit_names and user_id:
+            try:
+                from app.tools.composio_tools import (
+                    check_user_google_connection,
+                    create_composio_mcp_tools,
+                    get_connection_url,
+                )
+
+                is_connected = check_user_google_connection(user_id)
+                if is_connected:
+                    mcp_tools = create_composio_mcp_tools(user_id, composio_toolkit_names)
+                    tools_list.append(mcp_tools)
+                    instructions_parts.append(
+                        "You have access to Composio tools for Google Analytics and Google Search Console. "
+                        "When the user asks about website traffic, search performance, analytics, GSC, GA4, "
+                        "keywords, impressions, clicks, or any data from their Google accounts, use the "
+                        "COMPOSIO_SEARCH_TOOLS tool to find the right action, then COMPOSIO_MULTI_EXECUTE_TOOL "
+                        "to run it. Always use these tools for analytics queries instead of relying on uploaded documents."
+                    )
+                else:
+                    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+                    redirect_url = f"{frontend_url}/savants/{savant_id}/chat"
+                    connect_url = get_connection_url(user_id, redirect_url)
+                    instructions_parts.append(
+                        f"\nIMPORTANT: The user has NOT connected their Google account. "
+                        f"Before answering any analytics or search console questions, "
+                        f"ask them to connect by clicking this link: {connect_url}\n"
+                        f"After they connect, they should send their question again."
+                    )
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning(
+                    f"Failed to load Composio tools for savant {savant_id}: {e}"
+                )
+
+        combined_instructions = "\n\n".join(instructions_parts) if instructions_parts else None
 
         # Default to Claude Sonnet 4.5
         model_name = model_config.get('model', 'anthropic/claude-sonnet-4.5')
@@ -157,7 +200,7 @@ class SavantAgentFactory:
                 max_tokens=model_config.get('max_tokens', 4096),
             ),
             instructions=combined_instructions,
-            tools=[rag_function],
+            tools=tools_list,
             markdown=True,
             # Memory configuration for conversation continuity
             db=self.agent_db,

@@ -117,6 +117,11 @@ export default async function SavantPage({ params }: SavantPageProps) {
     }
   }
 
+  // Check if current user is a platform admin
+  const { data: isAdminData } = await adminSupabase
+    .rpc('is_platform_admin', { check_user_id: user.id })
+  const isAdmin = isAdminData === true
+
   const documentCount = savant.documents?.length || 0
   const modelConfig = savant.model_config || {}
   const modelName = modelConfig.model || 'gpt-4o-mini'
@@ -263,7 +268,7 @@ export default async function SavantPage({ params }: SavantPageProps) {
         </TabsContent>
 
         <TabsContent value="settings">
-          <SavantSettings savant={savant} />
+          <SavantSettings savant={savant} isAdmin={isAdmin} />
         </TabsContent>
 
         <TabsContent value="publish" className="space-y-4">

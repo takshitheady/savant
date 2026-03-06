@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { createClient } from '@/lib/supabase/client'
-import { Send, Bot, User, Loader2 } from 'lucide-react'
+import { Send, Bot, User, Loader2, ExternalLink, CheckCircle2, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useOnboarding } from '@/components/onboarding'
 import ReactMarkdown from 'react-markdown'
@@ -36,10 +36,21 @@ export function ChatInterface({
   initialConversationId,
 }: ChatInterfaceProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { completeMilestone } = useOnboarding()
   const [messages, setMessages] = useState<Message[]>(initialMessages)
+  const [showConnectedBanner, setShowConnectedBanner] = useState(false)
+
+  useEffect(() => {
+    if (searchParams.get('status') === 'success') {
+      setShowConnectedBanner(true)
+      // Clean URL without reload
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [searchParams])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [activeTool, setActiveTool] = useState<string | null>(null)
   const [conversationId, setConversationId] = useState<string | null>(initialConversationId || null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -123,7 +134,16 @@ export function ChatInterface({
                 setConversationId(data.conversation_id)
               }
 
+              if (data.type === 'tool_start') {
+                setActiveTool(data.display)
+              }
+
+              if (data.type === 'tool_done' || data.type === 'tool_error') {
+                setActiveTool(null)
+              }
+
               if (data.type === 'content' && data.content) {
+                setActiveTool(null)
                 setMessages((prev) =>
                   prev.map((msg) =>
                     msg.id === assistantMsgId
@@ -157,6 +177,7 @@ export function ChatInterface({
       alert('Failed to send message. Please try again.')
     } finally {
       setIsLoading(false)
+      setActiveTool(null)
       textareaRef.current?.focus()
     }
   }
@@ -170,6 +191,20 @@ export function ChatInterface({
 
   return (
     <div className="flex h-full flex-col bg-background">
+      {/* Google Connected Banner */}
+      {showConnectedBanner && (
+        <div className="mx-4 mt-4 lg:mx-8">
+          <div className="mx-auto max-w-3xl flex items-center gap-3 rounded-xl bg-green-50 border border-green-200 px-4 py-3">
+            <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
+            <p className="text-sm text-green-800 flex-1">
+              Google account connected successfully! You can now ask about your analytics and search console data.
+            </p>
+            <button onClick={() => setShowConnectedBanner(false)} className="text-green-600 hover:text-green-800">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-6 lg:px-8">
         <div className="mx-auto max-w-3xl">
@@ -210,7 +245,35 @@ export function ChatInterface({
                   >
                     {message.role === 'assistant' ? (
                       <div className="prose prose-sm max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-pre:my-2 prose-code:text-primary prose-code:bg-primary/5 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            a: ({ href, children }) => {
+                              const isOAuthLink = href && (
+                                href.includes('composio.dev') ||
+                                href.includes('accounts.google.com')
+                              )
+                              if (isOAuthLink) {
+                                return (
+                                  <a
+                                    href={href}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="no-underline inline-flex items-center gap-2 my-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+                                  >
+                                    <ExternalLink className="h-4 w-4" />
+                                    Connect Google Account
+                                  </a>
+                                )
+                              }
+                              return (
+                                <a href={href} target="_blank" rel="noopener noreferrer">
+                                  {children}
+                                </a>
+                              )
+                            },
+                          }}
+                        >
                           {message.content}
                         </ReactMarkdown>
                       </div>
@@ -232,7 +295,9 @@ export function ChatInterface({
                   </div>
                   <div className="flex items-center gap-2 rounded-2xl bg-white px-4 py-3">
                     <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                    <span className="text-sm text-muted-foreground">Thinking...</span>
+                    <span className="text-sm text-muted-foreground">
+                      {activeTool || 'Thinking...'}
+                    </span>
                   </div>
                 </div>
               )}

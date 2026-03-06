@@ -37,9 +37,26 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import { Switch } from '@/components/ui/switch'
 import { createClient } from '@/lib/supabase/client'
-import { Loader2, Trash2 } from 'lucide-react'
+import { Loader2, Trash2, BarChart3, Search } from 'lucide-react'
 import { SelectGroup, SelectLabel } from '@/components/ui/select'
+
+// Available integrations (admin-only)
+const AVAILABLE_TOOLKITS = [
+  {
+    id: 'google_analytics',
+    label: 'Google Analytics 4',
+    description: 'Traffic, user behavior, conversions, and real-time data',
+    icon: BarChart3,
+  },
+  {
+    id: 'google_search_console',
+    label: 'Google Search Console',
+    description: 'Search queries, impressions, clicks, and indexing status',
+    icon: Search,
+  },
+] as const
 
 // Available AI models
 const AVAILABLE_MODELS = [
@@ -81,14 +98,23 @@ interface SavantSettingsProps {
       temperature?: number
       provider?: string
       max_tokens?: number
+      toolkits?: string[]
+      use_brand_voice?: boolean
     } | null
   }
+  isAdmin?: boolean
 }
 
-export function SavantSettings({ savant }: SavantSettingsProps) {
+export function SavantSettings({ savant, isAdmin }: SavantSettingsProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+
+  // Track selected toolkits separately (not in zod schema since admin-only)
+  const existingToolkits = savant.model_config?.toolkits || ['rag']
+  const [selectedToolkits, setSelectedToolkits] = useState<string[]>(
+    existingToolkits.filter(t => t !== 'rag') // Show only integration toolkits, RAG is always included
+  )
 
   const form = useForm<SavantFormValues>({
     resolver: zodResolver(savantSchema),
@@ -100,23 +126,37 @@ export function SavantSettings({ savant }: SavantSettingsProps) {
     },
   })
 
+  function toggleToolkit(toolkitId: string) {
+    setSelectedToolkits(prev =>
+      prev.includes(toolkitId)
+        ? prev.filter(t => t !== toolkitId)
+        : [...prev, toolkitId]
+    )
+  }
+
   async function onSubmit(values: SavantFormValues) {
     try {
       setIsLoading(true)
 
       const supabase = createClient()
 
+      // Preserve existing model_config fields and merge updates
+      const toolkits = ['rag', ...selectedToolkits]
+      const updatedModelConfig = {
+        ...savant.model_config,
+        model: values.model,
+        provider: 'multi',
+        temperature: values.temperature,
+        max_tokens: savant.model_config?.max_tokens || 4096,
+        toolkits,
+      }
+
       const { error } = await supabase
         .from('savants')
         .update({
           name: values.name,
           description: values.description,
-          model_config: {
-            model: values.model,
-            provider: 'multi',
-            temperature: values.temperature,
-            max_tokens: 4096,
-          },
+          model_config: updatedModelConfig,
         })
         .eq('id', savant.id)
 
@@ -283,6 +323,41 @@ export function SavantSettings({ savant }: SavantSettingsProps) {
                   </FormItem>
                 )}
               />
+
+              {isAdmin && (
+                <div className="space-y-4 rounded-lg border border-blue-200 bg-blue-50/50 p-4">
+                  <div>
+                    <h4 className="text-sm font-medium">Integrations</h4>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Enable third-party data sources. Users will connect their own accounts when chatting.
+                    </p>
+                  </div>
+                  <div className="space-y-3">
+                    {AVAILABLE_TOOLKITS.map((toolkit) => {
+                      const Icon = toolkit.icon
+                      const isChecked = selectedToolkits.includes(toolkit.id)
+                      return (
+                        <div
+                          key={toolkit.id}
+                          className={`flex items-center gap-3 rounded-lg border p-3 transition-colors ${
+                            isChecked ? 'border-blue-300 bg-blue-50' : 'border-gray-200 bg-white'
+                          }`}
+                        >
+                          <Icon className="h-4 w-4 text-blue-600 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium">{toolkit.label}</p>
+                            <p className="text-xs text-muted-foreground">{toolkit.description}</p>
+                          </div>
+                          <Switch
+                            checked={isChecked}
+                            onCheckedChange={() => toggleToolkit(toolkit.id)}
+                          />
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
 
               <Button type="submit" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

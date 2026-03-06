@@ -1,8 +1,8 @@
 # Savant - Technical Architecture Document
 
 ## Document Info
-- **Version**: 1.1
-- **Last Updated**: January 2025
+- **Version**: 2.0
+- **Last Updated**: March 2026
 - **Status**: Active Development
 
 ---
@@ -38,6 +38,76 @@ Savant uses a **monorepo** structure with two main services:
 │  └──────────────────────────────────────────────────────────────────┘  │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 1.5 Admin-Only Store Model
+
+### Role System
+
+Savant uses a two-tier role model:
+
+```
+PLATFORM ADMIN (Heady Team)              END USER (Customer)
+----------------------------              -------------------
+Create savants from scratch               Browse store only
+Upload admin knowledge base               Import savants
+Write hidden base prompts                 Add own instructions (on top)
+Publish to store                          Upload own documents
+Push updates to users                     Chat with savants
+Manage categories & listings              Cannot create savants
+Configure brand voice                     Cannot see admin prompts/docs
+```
+
+### How Savant Templates Work
+
+```
+ADMIN CREATES TEMPLATE                    USER IMPORTS & CUSTOMIZES
++---------------------------+             +---------------------------+
+| Base System Prompt        | [HIDDEN]    | Base Prompt (hidden)      |
+| "You are a sales expert   |             | + User Instructions       |
+|  who always..."           |             |   "Focus on enterprise    |
++---------------------------+             |    deals in APAC"         |
+| Admin Knowledge Base      | [HIDDEN]    +---------------------------+
+| - sales-playbook.pdf      |             | Admin KB (hidden, in RAG) |
+| - objection-handling.docx |             | + User Documents          |
++---------------------------+             |   - company-pitch.pdf     |
+| Store Listing             | [VISIBLE]   |   - pricing.xlsx          |
+| - Name, description       |             +---------------------------+
+| - Category, tags          |             | Chat uses ALL docs in RAG |
+| - Preview messages        |             | but only shows user docs  |
++---------------------------+             +---------------------------+
+```
+
+### Prompt Hierarchy (Runtime)
+
+When a user chats with an imported savant, prompts are combined:
+
+```
+1. Brand Voice (account-level, admin-set)     [HIDDEN from user]
+2. Base System Prompt (from template)          [HIDDEN from user]
+3. User Custom Instructions (user-added)       [VISIBLE to user]
+4. RAG Context (from admin + user documents)   [Mixed, filtered in UI]
+```
+
+### Database: Admin Identification
+
+```sql
+-- Platform admins table
+CREATE TABLE platform_admins (
+  id UUID PRIMARY KEY,
+  account_id UUID REFERENCES accounts(id),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Document visibility
+ALTER TABLE documents ADD COLUMN is_admin_document BOOLEAN DEFAULT false;
+ALTER TABLE documents ADD COLUMN is_visible_to_user BOOLEAN DEFAULT true;
+
+-- Savant template tracking
+ALTER TABLE savants ADD COLUMN cloned_from_id UUID REFERENCES savants(id);
+ALTER TABLE savants ADD COLUMN original_creator_account_id UUID REFERENCES accounts(id);
 ```
 
 ---
@@ -305,12 +375,15 @@ Returns JSON → Frontend auto-fills form fields
 | Table | Purpose | Key Fields | Notes |
 |-------|---------|------------|-------|
 | `accounts` | Multi-tenant root | `id`, `owner_id`, `default_system_prompt` | |
-| `account_prompts` | Account-level prompts & brand voice | `id`, `account_id`, `is_brand_voice`, `brand_voice_traits` (JSONB) | |
-| `savants` | AI bots | `id`, `account_id`, `description` (TEXT), `system_prompt` (TEXT), `model_config`, `rag_config` | description & system_prompt: unlimited (TEXT type), frontend validates 3000 chars |
-| `documents` | Uploaded files | `id`, `savant_id`, `file_path`, `status` | |
-| `document_chunks` | Vector embeddings | `id`, `savant_id`, `content`, `embedding` | |
+| `platform_admins` | Admin role tracking | `id`, `account_id` | Only admins can create/publish savants |
+| `account_prompts` | Account-level prompts & brand voice | `id`, `account_id`, `is_brand_voice`, `brand_voice_traits` (JSONB) | Admin-configured |
+| `savants` | AI bots | `id`, `account_id`, `cloned_from_id`, `original_creator_account_id` | Tracks template origin |
+| `documents` | Uploaded files | `id`, `savant_id`, `is_admin_document`, `is_visible_to_user` | Admin docs hidden from users |
+| `document_chunks` | Vector embeddings | `id`, `savant_id`, `content`, `embedding` | Used in RAG regardless of visibility |
 | `conversations` | Chat sessions | `id`, `savant_id`, `session_id` | |
 | `messages` | Chat messages | `id`, `conversation_id`, `role`, `content` | |
+| `store_listings` | Marketplace entries | `id`, `savant_id`, `category_id`, `tags` | Admin-published only |
+| `store_imports` | Import tracking | `source_savant_id`, `cloned_savant_id`, `imported_by_account_id` | Tracks who imported what |
 
 **Brand Voice Storage:**
 
@@ -599,7 +672,9 @@ SCOPES = {
 ```
 1. Upload → Supabase Storage
 2. Create document record (status: pending)
-3. Background job (Edge Function or queue):
+   - If admin upload: is_admin_document=true, is_visible_to_user=false
+   - If user upload: is_admin_document=false, is_visible_to_user=true
+3. Background job (Queue Worker):
    a. Download file from Storage
    b. Parse (PDF, DOCX, TXT)
    c. Chunk (1000 chars, 200 overlap)
@@ -617,12 +692,34 @@ SCOPES = {
 3. RAG Tool executes:
    a. Generate query embedding
    b. Call match_chunks() with savant_id filter
-   c. Return top-k relevant chunks
-4. Build prompt: System + Context + History + User Message
+   c. Returns chunks from BOTH admin and user documents
+   d. (Admin docs contribute to RAG but are not shown in UI)
+4. Build prompt:
+   a. Brand Voice (account-level, hidden)
+   b. Base System Prompt (admin-written, hidden)
+   c. User Custom Instructions (user-added)
+   d. RAG Context (from all documents)
+   e. Conversation History
+   f. User Message
 5. LLM generates response
 6. Stream tokens back to client
 7. Save message to database
 8. Track usage for billing
+```
+
+### 8.3 Savant Import Flow
+
+```
+1. User browses store → clicks "Import"
+2. Backend clones savant record to user's account:
+   a. Copy savant config (name, description, model_config, rag_config)
+   b. Copy admin documents (marked is_admin_document=true, is_visible_to_user=false)
+   c. Copy admin document_chunks (preserves embeddings)
+   d. Set cloned_from_id = original savant ID
+   e. Set original_creator_account_id = admin account ID
+3. User sees savant in "My Savants" dashboard
+4. User can add own instructions and documents on top
+5. Store import tracked in store_imports table
 ```
 
 ---
